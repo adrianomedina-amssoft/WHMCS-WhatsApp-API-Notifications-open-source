@@ -1,3 +1,7 @@
+# 4.3.4 - 26/08/25
+
+-Correção nos logs de notificações de orçamento.
+
 # 4.3.3 - 16/07/25
 
 - Atualização da documentação.
