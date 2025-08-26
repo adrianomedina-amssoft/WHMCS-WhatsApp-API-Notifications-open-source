@@ -29,7 +29,7 @@ final class QuoteStatusAcceptedNotification extends AbstractNotification
                     fn(): string => $this->whmcsHookParams['status']
                 )
             ]),
-            fn(): int => $this->whmcsHookParams['quoteid']
+            fn(): int => getClientIdByOrderId($this->whmcsHookParams['quote_id'])
         );
     }
 
