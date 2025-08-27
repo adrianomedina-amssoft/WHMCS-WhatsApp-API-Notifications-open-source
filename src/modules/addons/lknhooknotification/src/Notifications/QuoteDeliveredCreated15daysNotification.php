@@ -34,7 +34,7 @@ final class QuoteDeliveredCreated15daysNotification extends AbstractCronNotifica
                 new NotificationParameter(
                     'quote_id',
                     lkn_hn_lang('quote id'),
-                    fn(): int => $this->whmcsHookParams['quote_id']
+                    fn(): int => $this->whmcsHookParams['quoteid']
                 ),
                 new NotificationParameter(
                     'link_pdf',
@@ -47,7 +47,7 @@ final class QuoteDeliveredCreated15daysNotification extends AbstractCronNotifica
                     fn(): string => $this->whmcsHookParams['link_quote']
                 )
             ]),
-            fn(): int => getClientIdByOrderId($this->whmcsHookParams['quote_id'])
+            fn(): int => getClientIdByQuoteId($this->whmcsHookParams['quoteid'])
         );
     }
 

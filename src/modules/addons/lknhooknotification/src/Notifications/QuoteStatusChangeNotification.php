@@ -29,13 +29,13 @@ final class QuoteStatusChangeNotification extends AbstractNotification
                     fn(): string => $this->whmcsHookParams['status']
                 )
             ]),
-           fn(): int => getClientIdByOrderId($this->whmcsHookParams['quote_id'])
+           fn(): int => getClientIdByQuoteId($this->whmcsHookParams['quoteid'])
         );
     }
 
      public function shouldRun(): bool
      {
-        if($this->whmcsHookParams['status'] === 'Lost' || $this->whmcsHookParams['status'] === 'Dead'){
+        if($this->whmcsHookParams['status'] === 'Lost' || $this->whmcsHookParams['status'] === 'Dead' || $this->whmcsHookParams['status'] === 'Delivered' || $this->whmcsHookParams['status'] === 'Accepted' || $this->whmcsHookParams['status'] === 'On Hold'){
             return true;
         }
         return false;

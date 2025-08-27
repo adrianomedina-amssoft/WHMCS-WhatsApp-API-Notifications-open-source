@@ -35,7 +35,14 @@ final class NewQuoteCreatedNotification extends AbstractNotification
                     fn(): string => Setting::getValue('SystemURl').'viewquote.php?id='.$this->whmcsHookParams['quoteid']
                 )
                 ]),
-            fn(): int => getClientIdByOrderId($this->whmcsHookParams['quote_id'])
+            fn(): int => getClientIdByQuoteId($this->whmcsHookParams['quoteid'])
         );
     }
+    public function shouldRun(): bool
+     {
+        if($this->whmcsHookParams['status'] === 'Delivered'){
+            return true;
+        }
+        return false;
+     }
 }

@@ -248,6 +248,12 @@ function getInvoiceImgUrlByInvoiceId(
         : $imgUrl;
 }
 
+
+function getClientIdByQuoteId(int $quoteId): int
+{
+    return Capsule::table('tblquotes')->where('id', $quoteId)->first('userid')->userid;
+} 
+
 /**
  * Line items "type" and "domain".
  *
