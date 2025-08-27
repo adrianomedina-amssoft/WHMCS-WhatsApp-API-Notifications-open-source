@@ -47,7 +47,7 @@ final class QuoteDeliveredCreated10daysNotification extends AbstractCronNotifica
                     fn(): string => $this->whmcsHookParams['link_quote']
                 )
             ]),
-            fn(): int => getClientIdByOrderId($this->whmcsHookParams['quote_id'])
+            fn(): int => getClientIdByQuoteId($this->whmcsHookParams['quote_id'])
         );
     }
 
