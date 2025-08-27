@@ -1,6 +1,10 @@
+# 4.3.5 - 27/08/25
+
+- Correção na busca de clientes pela id do orçamento.
+
 # 4.3.4 - 26/08/25
 
--Correção nos logs de notificações de orçamento.
+- Correção nos logs de notificações de orçamento.
 
 # 4.3.3 - 16/07/25
 
