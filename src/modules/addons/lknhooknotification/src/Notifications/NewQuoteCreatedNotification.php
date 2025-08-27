@@ -22,17 +22,17 @@ final class NewQuoteCreatedNotification extends AbstractNotification
                 new NotificationParameter(
                     'quote_id',
                     lkn_hn_lang('quote id'),
-                    fn(): int => $this->whmcsHookParams['quoteid']
+                    fn(): int => $this->whmcsHookParams['quote_id']
                 ),
                 new NotificationParameter(
                     'link_pdf',
                     lkn_hn_lang('link pdf'),
-                    fn(): string => Setting::getValue('SystemURl').'dl.php?type=q&id='.$this->whmcsHookParams['quoteid']
+                    fn(): string => Setting::getValue('SystemURl').'dl.php?type=q&id='.$this->whmcsHookParams['quote_id']
                 ),
                 new NotificationParameter(
                     'link_quote',
                     lkn_hn_lang('link quote'),
-                    fn(): string => Setting::getValue('SystemURl').'viewquote.php?id='.$this->whmcsHookParams['quoteid']
+                    fn(): string => Setting::getValue('SystemURl').'viewquote.php?id='.$this->whmcsHookParams['quote_id']
                 )
                 ]),
             fn(): int => getClientIdByQuoteId($this->whmcsHookParams['quote_id'])
