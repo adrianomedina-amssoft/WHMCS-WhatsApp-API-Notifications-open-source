@@ -38,4 +38,11 @@ final class NewQuoteCreatedNotification extends AbstractNotification
             fn(): int => getClientIdByQuoteId($this->whmcsHookParams['quote_id'])
         );
     }
+    public function shouldRun(): bool
+     {
+        if($this->whmcsHookParams['status'] === 'Draft'){
+            return true;
+        }
+        return false;
+     }
 }

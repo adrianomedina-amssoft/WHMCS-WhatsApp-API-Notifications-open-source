@@ -21,7 +21,7 @@ final class QuoteStatusAcceptedNotification extends AbstractNotification
                 new NotificationParameter(
                     'quote_id',
                     lkn_hn_lang('quote id'),
-                    fn(): int => $this->whmcsHookParams['quoteid']
+                    fn(): int => $this->whmcsHookParams['quote_id']
                 ),
                 new NotificationParameter(
                     'status',
