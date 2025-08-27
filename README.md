@@ -12,7 +12,6 @@
 
 - PHP: 8.1+;
 - WHMCS: 8.6+
-- IonCube: 12+
 - Data Base SQL with permissions
   - ALTER
   - CREATE
