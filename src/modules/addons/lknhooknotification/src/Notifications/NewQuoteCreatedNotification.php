@@ -22,25 +22,25 @@ final class NewQuoteCreatedNotification extends AbstractNotification
                 new NotificationParameter(
                     'quote_id',
                     lkn_hn_lang('quote id'),
-                    fn(): int => $this->whmcsHookParams['quote_id']
+                    fn(): int => $this->whmcsHookParams['quoteid']
                 ),
                 new NotificationParameter(
                     'link_pdf',
                     lkn_hn_lang('link pdf'),
-                    fn(): string => Setting::getValue('SystemURl').'dl.php?type=q&id='.$this->whmcsHookParams['quote_id']
+                    fn(): string => Setting::getValue('SystemURl').'dl.php?type=q&id='.$this->whmcsHookParams['quoteid']
                 ),
                 new NotificationParameter(
                     'link_quote',
                     lkn_hn_lang('link quote'),
-                    fn(): string => Setting::getValue('SystemURl').'viewquote.php?id='.$this->whmcsHookParams['quote_id']
+                    fn(): string => Setting::getValue('SystemURl').'viewquote.php?id='.$this->whmcsHookParams['quoteid']
                 )
                 ]),
-            fn(): int => getClientIdByQuoteId($this->whmcsHookParams['quote_id'])
+            fn(): int => getClientIdByQuoteId($this->whmcsHookParams['quoteid'])
         );
     }
     public function shouldRun(): bool
      {
-        if($this->whmcsHookParams['status'] === 'Draft'){
+        if($this->whmcsHookParams['status'] === 'Delivered'){
             return true;
         }
         return false;
