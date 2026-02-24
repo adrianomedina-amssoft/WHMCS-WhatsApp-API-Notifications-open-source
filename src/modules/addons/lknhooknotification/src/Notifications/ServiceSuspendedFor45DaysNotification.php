@@ -21,7 +21,7 @@ final class ServiceSuspendedFor45DaysNotification extends AbstractCronNotificati
     {
         parent::__construct(
             'ServiceSuspendedFor45Days',
-            NotificationReportCategory::ORDER,
+            NotificationReportCategory::SERVICE,
             Hooks::DAILY_CRON_JOB,
             new NotificationParameterCollection([
                 new NotificationParameter(
@@ -65,15 +65,15 @@ final class ServiceSuspendedFor45DaysNotification extends AbstractCronNotificati
         $suspendedServices = Capsule::table('tblhosting')
             ->leftJoin('tblproducts', 'tblproducts.id', '=', 'tblhosting.packageid')
             ->where('tblhosting.nextduedate', $formattedDate)
-            ->wherein('tblhosting.domainstatus', ['Suspended','Cancelled'])
+            ->whereIn('tblhosting.domainstatus', ['Suspended','Cancelled'])
             ->whereIn('tblproducts.type', ['hostingaccount', 'other'])
-            ->get(['tblhosting.id as serviceId', 'tblhosting.userid as clientId']);
+            ->get(['tblhosting.id', 'tblhosting.userid']);
             
         $payloads = [];
 
         foreach ($suspendedServices as $service) {
-            $serviceId = $service->serviceId;
-            $clientId  = $service->clientId;
+            $serviceId = $service->id;
+            $clientId  = $service->userid;
 
             $payloads[] = [
                 'client_id' => $clientId,
