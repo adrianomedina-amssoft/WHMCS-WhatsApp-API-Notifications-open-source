@@ -40,7 +40,7 @@ final class UserPasswordChangeConfirmedNotication extends AbstractNotification
         );
     }
 
-    private function getClientId(int $userId){
-        return Capsule::table('tblusers_clients')->where('auth_user_id', $userId)->value('clien_id');
+    protected function getClientId(int $userId){
+        return Capsule::table('tblusers_clients')->where('auth_user_id', $userId)->value('client_id');
     }
 }
