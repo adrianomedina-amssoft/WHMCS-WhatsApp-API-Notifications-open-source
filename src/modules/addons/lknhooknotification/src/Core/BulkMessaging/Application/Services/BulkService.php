@@ -139,7 +139,7 @@ final class BulkService
 
     /**
      * @param  array<string, array<string>>|null $filters
-     * @param boolean                           $allClients
+     * @param boolean                            $allClients
      *
      * @return array
      */
@@ -153,7 +153,28 @@ final class BulkService
         }
 
         if (!empty($filters['client_locale'])) {
-            $query->whereIn('tblclients.language', $filters['client_locale']);
+            $locales = (array) $filters['client_locale'];
+            
+            $query->where(function ($q) use ($locales) {
+                $hasDefault = in_array('default', $locales, true) || in_array('', $locales, true);
+                
+                // CORREÇÃO: array_values aplicado para resetar as chaves do array filtrado
+                $explicitLocales = array_values(array_filter($locales, fn($val) => $val !== 'default' && $val !== ''));
+
+                if (!empty($explicitLocales)) {
+                    $q->whereIn('tblclients.language', $explicitLocales);
+                }
+
+                if ($hasDefault) {
+                    if (empty($explicitLocales)) {
+                         $q->whereNull('tblclients.language')
+                           ->orWhere('tblclients.language', '');
+                    } else {
+                         $q->orWhereNull('tblclients.language')
+                           ->orWhere('tblclients.language', '');
+                    }
+                }
+            });
         }
 
         if (!empty($filters['client_status'])) {
@@ -218,8 +239,6 @@ final class BulkService
     {
         $rawBulk = $this->bulkRepository->getBulks();
 
-
-
         $bulks = [];
 
         foreach ($rawBulk as $rawBulk) {
@@ -246,12 +265,12 @@ final class BulkService
     /**
      * @param NewBulkRequest $newBulkRequest
      * @param array{
-     *     header-parameter?: string,
-     *     body-parameters: array<int, string>,
-     *     button-parameters: array<int, string>,
-     *     message-template-lang: string,
-     *     message-template: string,
-     *     header-format: string
+     * header-parameter?: string,
+     * body-parameters: array<int, string>,
+     * button-parameters: array<int, string>,
+     * message-template-lang: string,
+     * message-template: string,
+     * header-format: string
      * } $rawFormPost
      *
      * @return Result
@@ -308,7 +327,8 @@ final class BulkService
                 'Unable to queue bulk messages',
                 [
                     'new_bulk_request' => $newBulkRequest,
-                    'client_ids' => $clientIds,
+                    // CORREÇÃO: A linha 'client_ids' => $clientIds foi removida daqui, 
+                    // pois $clientIds não existe neste momento e causaria um Fatal Error.
                 ],
                 [
                     'bulk_id' => $bulkId,
