@@ -374,9 +374,20 @@
                                     multiple
                                     {if $page_params.mode === 'edit'}disabled{/if}
                                 >
+                                    {* INÍCIO DA ALTERAÇÃO (Agora com o || empty) *}
+                                    <option 
+                                        value="default"
+                                        {if (isset($page_params.state->filters['client_locale']) && in_array('default', $page_params.state->filters['client_locale'])) || empty($page_params.state->filters['client_locale'])}
+                                            selected
+                                        {/if}
+                                    >
+                                        {lkn_hn_lang text="Default"}
+                                    </option>
+                                    {* FIM DA ALTERAÇÃO *}
+
                                     {foreach from=$page_params.field_options.whmcs_client_lang item=$locale}
                                         <option
-                                            {if $page_params.state->filters['client_locale'] && in_array($locale['locale_expanded'], $page_params.state->filters['client_locale']) || empty($page_params.state->filters['client_locale'])}
+                                            {if (isset($page_params.state->filters['client_locale']) && in_array($locale['locale_expanded'], $page_params.state->filters['client_locale'])) || empty($page_params.state->filters['client_locale'])}
                                                 selected
                                             {/if}
                                             value="{$locale['locale_expanded']}"

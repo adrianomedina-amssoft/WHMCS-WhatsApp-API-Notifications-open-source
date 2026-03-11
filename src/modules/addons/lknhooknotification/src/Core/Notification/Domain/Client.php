@@ -10,8 +10,9 @@ use WHMCS\Database\Capsule;
 
 final class Client
 {
-    public ?int $wpPhoneNumber = null;
-    public readonly ?int $whmcsPhoneNumber;
+    // FIX: Changed properties to accept strings
+    public ?string $wpPhoneNumber = null;
+    public readonly ?string $whmcsPhoneNumber;
     private readonly ClientRepository $clientRepository;
     public readonly string $locale;
 
@@ -28,17 +29,23 @@ final class Client
         $this->clientRepository = new ClientRepository();
 
         $whmcsPhoneNumber       = $this->clientRepository->getWhmcsPhoneNumber($this->id);
-        $this->whmcsPhoneNumber = $whmcsPhoneNumber ? ((int) preg_replace('/[^0-9+]/', '', $whmcsPhoneNumber)) : null;
+        // FIX: Removed (int) cast. Kept as string after regex.
+        $this->whmcsPhoneNumber = $whmcsPhoneNumber ? preg_replace('/[^0-9+]/', '', $whmcsPhoneNumber) : null;
+        
         $countryCode            = $this->clientRepository->getClientCountry($this->id);
 
         $this->countryCode = $countryCode;
         $this->locale      = $this->clientRepository->getClientLang($this->id)['locale'];
     }
 
-    public function validateWpPhoneNumber(int $customFieldId): false|int
+    // FIX: Return type is now false|string
+    public function validateWpPhoneNumber(int $customFieldId): false|string
     {
-        $wpPhoneNumber = (int) $this->clientRepository->getCustomField($this->id, $customFieldId);
-        $wpPhoneNumber = $wpPhoneNumber ? ((int) preg_replace('/[^0-9+]/', '', strval($wpPhoneNumber))) : null;
+        // FIX: Removed (int) cast when fetching the field. Keep it as string.
+        $wpPhoneNumberRaw = $this->clientRepository->getCustomField($this->id, $customFieldId);
+        
+        // FIX: Removed (int) cast.
+        $wpPhoneNumber = $wpPhoneNumberRaw ? preg_replace('/[^0-9+]/', '', strval($wpPhoneNumberRaw)) : null;
 
         if (!$wpPhoneNumber) {
             return false;
@@ -48,12 +55,12 @@ final class Client
             return false;
         }
 
-
         $this->wpPhoneNumber = $wpPhoneNumber;
         return $this->wpPhoneNumber;
     }
 
-    public function validateWhmcsPhoneNumber(): false|int
+    // FIX: Return type is now false|string
+    public function validateWhmcsPhoneNumber(): false|string
     {
         if (
             empty($this->whmcsPhoneNumber)
@@ -65,7 +72,8 @@ final class Client
         return $this->whmcsPhoneNumber;
     }
 
-    public function getWpPhoneNumberOrWhmcsPhoneNumber(?int $platformSpecificWpCustomFieldId): false|int
+    // FIX: Return type is now false|string
+    public function getWpPhoneNumberOrWhmcsPhoneNumber(?int $platformSpecificWpCustomFieldId): false|string
     {
         /** @var null|int $globalWpCustomFieldId */
         $globalWpCustomFieldId = lkn_hn_config(Settings::WP_CUSTOM_FIELD_ID);
@@ -84,11 +92,11 @@ final class Client
     /**
      * Valides the phone number against the client country.
      *
-     * @param  integer $phoneNumber
+     * @param  string $phoneNumber // FIX: Accepts string instead of int
      *
      * @return boolean
      */
-    private function validatePhoneNumber(int $phoneNumber): bool
+    private function validatePhoneNumber(string $phoneNumber): bool
     {
         try {
             if (empty($phoneNumber)) {

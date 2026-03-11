@@ -113,7 +113,7 @@ I18n::getInstance()::load(define_i18n_lang());
  */
 function lkn_hn_lang(array|string $text, array|Smarty_Internal_Template $params = []): string
 {
-    $key = is_array($text) ? $text['text'] : $text;
+    $key = is_array($text) ? ($text['text'] ?? '') : $text;
 
     if (empty($key)) {
         return '[empty]';
@@ -121,7 +121,11 @@ function lkn_hn_lang(array|string $text, array|Smarty_Internal_Template $params 
 
     $translated = I18n::getInstance()->get($key);
 
-    $params = is_array($text) ? $text['params'] : $params;
+    $params = is_array($text) ? ($text['params'] ?? []) : $params;
+
+    if (!is_iterable($params)) {
+        $params = [];
+    }
 
     foreach ($params as $key => $value) {
         $key_       = $key;
@@ -221,7 +225,7 @@ function lkn_hn_config_set(Platforms $platform, Settings $setting, $value)
 
     lkn_hn_log(
         'Upsert setting',
-        ['setting' => $setting->name, 'value' > $value],
+        ['setting' => $setting->name, 'value' => $value],
         ['result' > $result]
     );
 }
