@@ -29,7 +29,7 @@
             <li class="text-danger">
                 {lkn_hn_lang text="If you have custom notifications, you must refactor your implementation following the new standard:"}
                 <a
-                    href="https://github.com/LinkNacional/whmcs-whatsapp-api-notifications-open-source/wiki/How-to-create-a-notification-by-yourself"
+                    href="https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source/wiki/How-to-create-a-notification-by-yourself"
                     target="_blank"
                 >
                     {lkn_hn_lang text="Click here to view the new way for creating notifications."}

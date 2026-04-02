@@ -47,14 +47,7 @@
 
                     {if $page_params.license_status !== 'yes'}
                         <div>
-                            <a
-                                class="btn btn-lg btn-success"
-                                href="https://cliente.linknacional.com.br/solicitar/whmcs-notificacao-whatsapp"
-                                target="_blank"
-                            >
-                                <i class="far fa-plus"></i>
-                                {lkn_hn_lang text="Get paid plan now for more notifications!"}
-                            </a>
+                            {* Botão de upgrade removido: projeto open source AMS SOFT *}
                         </div>
                     {/if}
                 </div>
@@ -118,7 +111,7 @@
                             <ul class="nav nav-pills nav-stacked">
                                 <li role="presentation">
                                     <a
-                                        href="https://github.com/LinkNacional/whmcs-whatsapp-api-notifications-open-source/issues/new?assignees=&labels=bug%2C+help+wanted&projects=&template=bug_report.md&title=%5BBUG%5D"
+                                        href="https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source/issues/new?assignees=&labels=bug%2C+help+wanted&projects=&template=bug_report.md&title=%5BBUG%5D"
                                         target="_blank"
                                     >
                                         <i class="fas fa-exclamation-triangle"></i> {lkn_hn_lang text="Report error"}
@@ -126,7 +119,7 @@
                                 </li>
                                 <li role="presentation">
                                     <a
-                                        href="https://github.com/LinkNacional/whmcs-whatsapp-api-notifications-open-source/issues/new?assignees=&labels=enhancement&projects=&template=feature_request.md&title=%5BFEATURE%5D"
+                                        href="https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source/issues/new?assignees=&labels=enhancement&projects=&template=feature_request.md&title=%5BFEATURE%5D"
                                         target="_blank"
                                     >
                                         <i class="fas fa-plus-circle"></i> {lkn_hn_lang text="Request new feature"}
@@ -134,7 +127,7 @@
                                 </li>
                                 <li role="presentation">
                                     <a
-                                        href="https://github.com/LinkNacional/whmcs-whatsapp-api-notifications-open-source/wiki/How-to-create-a-notification-by-yourself"
+                                        href="https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source/wiki/How-to-create-a-notification-by-yourself"
                                         target="_blank"
                                     >
                                         <i class="far fa-code"></i>
@@ -143,7 +136,7 @@
                                 </li>
                                 <li role="presentation">
                                     <a
-                                        href="https://linknacional.github.io/whmcs-whatsapp-api-notifications-open-source/indices/files.html"
+                                        href="https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source"
                                         target="_blank"
                                     >
                                         <i class="fas fa-file-alt"></i> {lkn_hn_lang text="Technical Documentation"}
@@ -165,7 +158,7 @@
                             <ul class="nav nav-pills nav-stacked">
                                 <li role="presentation">
                                     <a
-                                        href="https://www.linknacional.com.br/whmcs/whatsapp/doc/#doc"
+                                        href="https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source/wiki"
                                         target="_blank"
                                     >
                                         <i class="fas fa-cog"></i> {lkn_hn_lang text="How to setup the module?"}
@@ -173,7 +166,7 @@
                                 </li>
                                 <li role="presentation">
                                     <a
-                                        href="https://github.com/LinkNacional/whmcs-whatsapp-api-notifications-open-source/wiki/How-to-install-more-notifications"
+                                        href="https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source/wiki/How-to-install-more-notifications"
                                         target="_blank"
                                     >
                                         <i class="fas fa-cloud-download"></i>

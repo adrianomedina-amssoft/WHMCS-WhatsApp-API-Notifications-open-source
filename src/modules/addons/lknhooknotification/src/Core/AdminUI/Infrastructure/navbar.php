@@ -80,7 +80,7 @@ return [
             'items' => [
                 [
                     'label' => lkn_hn_lang('Report Error'),
-                    'url' => 'https://github.com/LinkNacional/whmcs-whatsapp-api-notifications-open-source/issues/new?assignees=&labels=bug%2C+help+wanted&projects=&template=bug_report.md&title=',
+                    'url' => 'https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source/issues/new?assignees=&labels=bug%2C+help+wanted&projects=&template=bug_report.md&title=',
                     'external' => true,
                     'icon' => 'far fa-exclamation-triangle',
                 ],
@@ -93,7 +93,7 @@ return [
                     'icon' => 'glyphicon glyphicon-download',
                     'label' => 'v4.3.4',
                     'external' => true,
-                    'url' => 'https://github.com/LinkNacional/whmcs-whatsapp-api-notifications-open-source/releases'
+                    'url' => 'https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source/releases'
                 ]
             ],
         ],

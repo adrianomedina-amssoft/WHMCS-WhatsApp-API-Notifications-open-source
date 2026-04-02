@@ -15,13 +15,13 @@
             </button>
             <a
                 class="navbar-brand"
-                href="https://www.linknacional.com.br/whmcs/"
+                href="https://www.amssoft.com.br"
                 target="_blank"
                 style="display: flex; font-size: 14px; color: gray; gap: 4px;"
             >
                 <img
-                    alt="Link Nacional"
-                    title="Link Nacional"
+                    alt="AMS SOFT"
+                    title="AMS SOFT"
                     style="height: 20px"
                     src="{$lkn_hn.system_url}/modules/addons/lknhooknotification/logo.png"
                 >
@@ -67,7 +67,7 @@
                                     {else}
                                         {if isset($subitem['block']) && $subitem['block']}
                                             <li>
-                                                <a href="https://www.linknacional.com/whmcs/whatsapp/">
+                                                <a href="https://www.amssoft.com.br">
                                                     <i class="{$subitem['icon']}"></i>
                                                     {$subitem['label']}
                                                     <strong>{lkn_hn_lang text="(PRO)"}</strong>
