@@ -148,4 +148,13 @@ class NotificationRepository extends BaseRepository
             ->limit(1)
             ->delete();
     }
+
+    /** Remove todos os templates de uma notificação (usado ao excluir notificação customizada) */
+    public function deleteAllTemplatesForNotification(string $notificationCode): bool
+    {
+        return (bool) $this->query
+            ->table('mod_lkn_hook_notification_localized_tpls')
+            ->where('notif_code', $notificationCode)
+            ->delete();
+    }
 }

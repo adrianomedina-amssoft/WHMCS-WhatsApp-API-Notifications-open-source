@@ -3,11 +3,13 @@
 namespace Lkn\HookNotification\Core\Notification\Http\Controllers;
 
 use Lkn\HookNotification\Core\AdminUI\Application\Services\LicenseService;
+use Lkn\HookNotification\Core\Notification\Application\Services\CustomNotificationService;
 use Lkn\HookNotification\Core\Notification\Application\Services\NotificationService;
 use Lkn\HookNotification\Core\Notification\Application\Services\NotificationViewService;
 use Lkn\HookNotification\Core\Notification\Domain\NotificationTemplate;
 use Lkn\HookNotification\Core\Platforms\Common\Application\PlatformService;
 use Lkn\HookNotification\Core\Shared\Infrastructure\Config\Platforms;
+use Lkn\HookNotification\Core\Shared\Infrastructure\Hooks;
 use Lkn\HookNotification\Core\Shared\Infrastructure\Interfaces\BaseController;
 use Lkn\HookNotification\Core\Shared\Infrastructure\View\View;
 
@@ -15,16 +17,17 @@ final class NotificationController extends BaseController
 {
     private NotificationService $notificationService;
     private NotificationViewService $notificationViewService;
-
+    private CustomNotificationService $customNotificationService;
     private PlatformService $platformService;
 
     public function __construct(View $view)
     {
         parent::__construct($view);
 
-        $this->notificationService     = new NotificationService();
-        $this->platformService         = new PlatformService();
-        $this->notificationViewService = new NotificationViewService($this->view);
+        $this->notificationService        = new NotificationService();
+        $this->customNotificationService  = new CustomNotificationService();
+        $this->platformService            = new PlatformService();
+        $this->notificationViewService    = new NotificationViewService($this->view);
     }
 
     public function viewNotification(
@@ -227,5 +230,151 @@ final class NotificationController extends BaseController
             'must_block_edit_notification' => LicenseService::getInstance()->mustBlockNotificationEdit(),
             'platform_list' => $this->platformService->getEnabledPlatforms(),
         ]);
+    }
+
+    /**
+     * Exibe o formulário de criação de notificação customizada.
+     * No POST, persiste a notificação e redireciona para o editor de template.
+     *
+     * @param array<mixed> $request
+     */
+    public function viewCreateCustomNotification(array $request): void
+    {
+        if (!empty($request) && isset($request['label'])) {
+            $result = $this->customNotificationService->create($request);
+
+            if ($result->code === 'success') {
+                $newCode = $result->data['code'];
+
+                // Se o template já foi salvo no formulário, vai para a listagem
+                // Caso contrário, redireciona para o editor de template
+                if (!empty($result->data['has_template'])) {
+                    header('Location: addonmodules.php?module=lknhooknotification&page=notifications&created=1');
+                } else {
+                    header(
+                        'Location: addonmodules.php?module=lknhooknotification&page=notifications/'
+                        . $newCode
+                        . '/templates/new'
+                    );
+                }
+
+                return;
+            }
+
+            $this->view->alert('danger', $result->errors['message'] ?? $result->errors['exception'] ?? 'Erro ao criar notificação.');
+        }
+
+        // Monta lista de hooks agrupados por categoria para o dropdown
+        $hookGroups = $this->buildHookGroups();
+
+        // Receitas base disponíveis
+        $recipes = [
+            'invoice' => lkn_hn_lang('Invoice'),
+            'order'   => lkn_hn_lang('Order'),
+            'ticket'  => lkn_hn_lang('Ticket'),
+            'module'  => lkn_hn_lang('Service'),
+        ];
+
+        $this->view->view('create_edit_custom_notification', [
+            'hook_groups' => $hookGroups,
+            'recipes'     => $recipes,
+            'form_action' => 'create',
+        ]);
+    }
+
+    /**
+     * Exclui uma notificação customizada (somente notificações criadas pelo painel).
+     *
+     * @param array<mixed> $request
+     */
+    public function handleDeleteCustomNotification(array $request): void
+    {
+        $code = $request['notification-code'] ?? '';
+
+        $result = $this->customNotificationService->delete($code);
+
+        if ($result->code === 'success') {
+            $this->view->alert('success', lkn_hn_lang('Notification deleted successfully.'));
+        } else {
+            $this->view->alert('danger', $result->errors['message'] ?? $result->errors['exception'] ?? 'Erro ao excluir notificação.');
+        }
+
+        $notifications = $this->notificationService->getNotificationsForView();
+
+        $this->view->view('notifications_table', [
+            'notifications' => $notifications,
+            'must_block_add_other_notifications' => LicenseService::getInstance()->mustBlockNotificationEdit(),
+            'must_block_edit_notification' => LicenseService::getInstance()->mustBlockNotificationEdit(),
+            'platform_list' => $this->platformService->getEnabledPlatforms(),
+        ]);
+    }
+
+    /**
+     * Clona qualquer notificação (nativa ou customizada) e redireciona para a lista.
+     *
+     * @param array<mixed> $request
+     */
+    public function handleCloneNotification(array $request): void
+    {
+        $sourceCode = $request['source-code'] ?? '';
+
+        $result = $this->customNotificationService->clone($sourceCode);
+
+        if ($result->code === 'success') {
+            $newCode = $result->data['code'];
+
+            header(
+                'Location: addonmodules.php?module=lknhooknotification&page=notifications/'
+                . $newCode
+                . '/templates/new&cloned=1'
+            );
+
+            return;
+        }
+
+        $this->view->alert('danger', $result->errors['message'] ?? $result->errors['exception'] ?? 'Erro ao clonar notificação.');
+
+        $notifications = $this->notificationService->getNotificationsForView();
+
+        $this->view->view('notifications_table', [
+            'notifications' => $notifications,
+            'must_block_add_other_notifications' => LicenseService::getInstance()->mustBlockNotificationEdit(),
+            'must_block_edit_notification' => LicenseService::getInstance()->mustBlockNotificationEdit(),
+            'platform_list' => $this->platformService->getEnabledPlatforms(),
+        ]);
+    }
+
+    /**
+     * Monta os hooks do WHMCS agrupados por categoria para exibição no dropdown.
+     *
+     * @return array<string, array<string, string>>
+     */
+    private function buildHookGroups(): array
+    {
+        $groups = [];
+
+        foreach (Hooks::cases() as $hook) {
+            // Determina o grupo com base no prefixo do nome do hook
+            $group = match (true) {
+                str_starts_with($hook->value, 'Invoice')  => lkn_hn_lang('Invoice'),
+                str_starts_with($hook->value, 'Order')    => lkn_hn_lang('Order'),
+                str_starts_with($hook->value, 'Ticket')   => lkn_hn_lang('Ticket'),
+                str_starts_with($hook->value, 'Client')   => lkn_hn_lang('Client'),
+                str_starts_with($hook->value, 'Domain')   => lkn_hn_lang('Domain'),
+                str_starts_with($hook->value, 'AfterModule'),
+                str_starts_with($hook->value, 'PreModule')  => lkn_hn_lang('Service'),
+                str_starts_with($hook->value, 'Daily'),
+                str_starts_with($hook->value, 'After')    => lkn_hn_lang('Cron / Automation'),
+                str_starts_with($hook->value, 'User')     => lkn_hn_lang('User'),
+                str_starts_with($hook->value, 'Quote')    => lkn_hn_lang('Quote'),
+                default                                    => lkn_hn_lang('Other'),
+            };
+
+            $groups[$group][$hook->value] = $hook->value;
+        }
+
+        ksort($groups);
+
+        return $groups;
     }
 }

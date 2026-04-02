@@ -62,6 +62,24 @@ return [
             'viewNotification',
         ],
     ],
+    'notifications/new' => [
+        'class' => [
+            NotificationController::class,
+            'viewCreateCustomNotification',
+        ],
+    ],
+    'notifications/clone' => [
+        'class' => [
+            NotificationController::class,
+            'handleCloneNotification',
+        ],
+    ],
+    'notifications/delete-custom' => [
+        'class' => [
+            NotificationController::class,
+            'handleDeleteCustomNotification',
+        ],
+    ],
     'bulk/list' => [
         'class' => [
             BulkController::class,

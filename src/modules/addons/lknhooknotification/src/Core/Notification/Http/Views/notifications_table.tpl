@@ -7,38 +7,23 @@
 {block "title_right_side"}
     <a
         class="btn btn-link"
-        href="https://github.com/LinkNacional/whmcs-whatsapp-api-notifications-open-source/wiki/How-to-create-a-notification-by-yourself"
+        href="https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source/wiki/How-to-create-a-notification-by-yourself"
         target="_blank"
     >
         <i class="far fa-question-circle"></i>
         {lkn_hn_lang text="How to create your own notification?"}
     </a>
+    <a
+        class="btn btn-primary"
+        href="{$lkn_hn_base_endpoint}&page=notifications/new"
+    >
+        <i class="fas fa-plus"></i>
+        {lkn_hn_lang text="New Notification"}
+    </a>
 {/block}
 
 {block "page_content"}
-    {if $page_params.must_block_add_other_notifications}
-        <div
-            class="alert alert-warning"
-            role="alert"
-            style="width: 100%; display: inline-flex; justify-content: space-between; align-items: center;"
-        >
-            <p>
-                {lkn_hn_lang text="You are on free plan and limited to 3 notifications."}
-                {if $page_params.must_block_edit_notification}
-                    <br>
-                    {lkn_hn_lang text="You have to keep only three notifications configured to be able to use the module."}
-                {/if}
-            </p>
-            <a
-                class="btn btn-success"
-                href="https://cliente.linknacional.com.br/solicitar/whmcs-notificacao-whatsapp"
-                target="_blank"
-            >
-                <i class="far fa-plus"></i>
-                {lkn_hn_lang text="Get paid plan now for more notifications!"}
-            </a>
-        </div>
-    {/if}
+    {* Bloco de aviso de plano gratuito — sem link externo pago (projeto open source AMS SOFT) *}
 
     <div class="row">
         <div class="col-md-12">
@@ -84,7 +69,12 @@
                                             {/if}
                                         >
                                             <p>
-                                                {lkn_hn_lang text=$notification->code}
+                                                {* Notificações dinâmicas exibem o label; as demais exibem o código traduzido *}
+                                                {if isset($notification->label) && $notification->label}
+                                                    {$notification->label}
+                                                {else}
+                                                    {lkn_hn_lang text=$notification->code}
+                                                {/if}
                                                 {if $notification->description}<i class="far fa-question-circle"></i>{/if}
                                             </p>
 
@@ -99,12 +89,8 @@
                                     </td>
                                     {* <td></td> *}
                                     <td>
-                                        {if !$page_params.must_block_add_other_notifications}
-                                            <p
-                                                class="text-muted"
-                                                style="margin-bottom: 0px;"
-                                            >
-
+                                        <div style="display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; align-items: center;">
+                                            {if !$page_params.must_block_add_other_notifications}
                                                 <a
                                                     type="button"
                                                     class="btn btn-link btn-sm"
@@ -113,8 +99,49 @@
                                                     <i class="fas fa-plus"></i>
                                                     {lkn_hn_lang text="Setup template"}
                                                 </a>
-                                            </p>
-                                        {/if}
+                                            {/if}
+
+                                            {* Botão clonar — disponível para qualquer notificação *}
+                                            <form
+                                                id="clone-notif-form-{$notification->code}"
+                                                style="display: inline;"
+                                                method="POST"
+                                                action="{$lkn_hn_base_endpoint}&page=notifications/clone"
+                                            >
+                                                <input type="hidden" name="source-code" value="{$notification->code}">
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-default btn-sm"
+                                                    data-toggle="tooltip"
+                                                    data-placement="top"
+                                                    title="{lkn_hn_lang text='Clone this notification'}"
+                                                    onclick="return window.confirm('{lkn_hn_lang text='Clone this notification?'}')"
+                                                >
+                                                    <i class="fas fa-copy"></i>
+                                                    {lkn_hn_lang text="Clone"}
+                                                </button>
+                                            </form>
+
+                                            {* Botão excluir — somente para notificações criadas pelo painel *}
+                                            {if isset($notification->isDynamic) && $notification->isDynamic}
+                                                <form
+                                                    id="delete-custom-notif-form-{$notification->code}"
+                                                    style="display: inline;"
+                                                    method="POST"
+                                                    action="{$lkn_hn_base_endpoint}&page=notifications/delete-custom"
+                                                >
+                                                    <input type="hidden" name="notification-code" value="{$notification->code}">
+                                                    <button
+                                                        type="submit"
+                                                        class="btn btn-danger btn-sm"
+                                                        onclick="return window.confirm('{lkn_hn_lang text='Are you sure you want to delete this notification and all its templates?'}')"
+                                                    >
+                                                        <i class="fas fa-trash"></i>
+                                                        {lkn_hn_lang text="Delete"}
+                                                    </button>
+                                                </form>
+                                            {/if}
+                                        </div>
                                         {if isset($notification->templates) && (count($notification->templates) > 0)}
                                             <div
                                                 class="panel panel-default"

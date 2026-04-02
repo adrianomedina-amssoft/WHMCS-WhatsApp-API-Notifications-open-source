@@ -4,7 +4,9 @@ namespace Lkn\HookNotification\Core\Notification\Application;
 
 use Lkn\HookNotification\Core\Notification\Domain\AbstractNotification;
 use Lkn\HookNotification\Core\Notification\Domain\BuiltInNotification;
+use Lkn\HookNotification\Core\Notification\Domain\DynamicNotification;
 use Lkn\HookNotification\Core\Notification\Domain\NotificationTemplate;
+use Lkn\HookNotification\Core\Notification\Infrastructure\Repositories\CustomNotificationRepository;
 use Lkn\HookNotification\Core\Notification\Infrastructure\Repositories\NotificationRepository;
 use Lkn\HookNotification\Core\Shared\Infrastructure\Config\Platforms;
 use Lkn\HookNotification\Core\Shared\Infrastructure\Hooks;
@@ -18,12 +20,14 @@ use Throwable;
 final class NotificationFactory extends Singleton
 {
     private NotificationRepository $notificationRepository;
+    private CustomNotificationRepository $customNotificationRepository;
     private array $builtInNotifRecipes;
     private string $fileNotificationsDir;
 
     protected function __construct()
     {
         $this->notificationRepository            = new NotificationRepository();
+        $this->customNotificationRepository      = new CustomNotificationRepository();
         $this->builtInNotifRecipes               = require __DIR__ . '/built_in_notifications_recipes.php';
         $this->fileNotificationsDir              = __DIR__ . '/../../../Notifications';
         $this->fileBasedNotificationClassesCache = [];
@@ -64,6 +68,19 @@ final class NotificationFactory extends Singleton
             }
         }
 
+        // Busca em notificações criadas pelo painel
+        $dynamicNotifications = $this->makeDynamicNotifications(
+            false,
+            [$notificationCode => $rawNotifTemplates],
+            $notificationCode
+        );
+
+        foreach ($dynamicNotifications as $notif) {
+            if ($notif->code === $notificationCode) {
+                return $notif;
+            }
+        }
+
         return null;
     }
 
@@ -93,6 +110,7 @@ final class NotificationFactory extends Singleton
         return [
             ...$fileBasedNotifications,
             ...$builtInNotifications,
+            ...$this->makeDynamicNotifications(false, $activeTemplates),
         ];
     }
 
@@ -114,7 +132,13 @@ final class NotificationFactory extends Singleton
                 }
         );
 
-        return $manualFileBasedNotifications;
+        // Inclui notificações dinâmicas que correspondem ao hook solicitado
+        $dynamicNotifications = array_values(array_filter(
+            $this->makeDynamicNotifications($onlyEnabled, $activeTemplates),
+            fn(AbstractNotification $n) => $n->hook === $hook
+        ));
+
+        return [...$manualFileBasedNotifications, ...$dynamicNotifications];
     }
 
     /**
@@ -135,6 +159,7 @@ final class NotificationFactory extends Singleton
         return [
             ...$this->makeBuiltInNotifications(true, $activeTemplatesForBuiltIn),
             ...$this->makeFileBasedNotification(true, $activeTemplatesForFileBased),
+            ...$this->makeDynamicNotifications(true, $activeTemplates),
         ];
     }
 
@@ -268,6 +293,78 @@ final class NotificationFactory extends Singleton
 
                 $instances[] = $notifInstance;
             }
+        }
+
+        return $instances;
+    }
+
+    /**
+     * Instancia as notificações criadas dinamicamente pelo painel administrativo.
+     *
+     * Cada registro em mod_lkn_hook_notification_custom_notifs é convertido
+     * em um DynamicNotification usando os closures da receita base correspondente.
+     *
+     * @param  boolean    $onlyEnabled                 Se verdadeiro, retorna apenas notificações com template ativo
+     * @param  array|null $templatesByNotification     Mapa de templates ativos indexado por código
+     * @param  string|null $filterByCode               Se informado, retorna apenas a notificação com este código
+     *
+     * @return DynamicNotification[]
+     */
+    private function makeDynamicNotifications(
+        bool $onlyEnabled = false,
+        ?array $templatesByNotification = null,
+        ?string $filterByCode = null
+    ): array {
+        // Garante que a tabela existe antes de consultar (instalações antigas sem upgrade)
+        try {
+            $records = $this->customNotificationRepository->findAll();
+        } catch (Throwable $th) {
+            return [];
+        }
+
+        $instances = [];
+
+        foreach ($records as $record) {
+            if ($filterByCode !== null && $filterByCode !== $record->code) {
+                continue;
+            }
+
+            // A receita base define clientIdFinder, categoryIdFinder e params
+            $recipe = $this->builtInNotifRecipes[$record->base_recipe] ?? null;
+
+            if (!$recipe) {
+                continue;
+            }
+
+            $hook = Hooks::tryFrom($record->hook);
+
+            if (!$hook) {
+                continue;
+            }
+
+            $rawNotifTemplates = $templatesByNotification[$record->code] ?? [];
+
+            // Respeita o campo is_active: notificações desativadas não disparam mesmo com template
+            if ($onlyEnabled && (empty($rawNotifTemplates) || empty($record->is_active))) {
+                continue;
+            }
+
+            $notifInstance = new DynamicNotification(
+                $record->code,
+                $recipe['category'],
+                $hook,
+                $recipe['params'],
+                $recipe['clientIdFinder'],
+                $recipe['categoryIdFinder'],
+                $record->description ?: null,
+                $record->label,
+            );
+
+            $notifInstance->setTemplates(
+                $this->buildNotificationTemplates($rawNotifTemplates)
+            );
+
+            $instances[] = $notifInstance;
         }
 
         return $instances;

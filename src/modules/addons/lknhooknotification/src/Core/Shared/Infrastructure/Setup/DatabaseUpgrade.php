@@ -519,4 +519,33 @@ final class DatabaseUpgrade
             lkn_hn_log('Database 4.3.0 upgrade failed', null, $th->__toString());
         }
     }
+
+    /** Cria tabela para notificações criadas pelo painel administrativo */
+    public static function v450(): void
+    {
+        try {
+            $pdo = Capsule::connection()->getPdo();
+
+            $pdo->exec('
+                CREATE TABLE IF NOT EXISTS mod_lkn_hook_notification_custom_notifs (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    code VARCHAR(255) NOT NULL UNIQUE,
+                    label VARCHAR(255) NOT NULL,
+                    description TEXT NULL,
+                    hook VARCHAR(255) NOT NULL,
+                    base_recipe VARCHAR(100) NOT NULL,
+                    days INT NULL,
+                    condition_note TEXT NULL,
+                    is_active TINYINT(1) NOT NULL DEFAULT 1,
+                    cloned_from VARCHAR(255) NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ');
+
+            lkn_hn_log('Database 4.5.0 success', null, []);
+        } catch (Throwable $th) {
+            lkn_hn_log('Database 4.5.0 upgrade failed', null, $th->__toString());
+        }
+    }
 }
