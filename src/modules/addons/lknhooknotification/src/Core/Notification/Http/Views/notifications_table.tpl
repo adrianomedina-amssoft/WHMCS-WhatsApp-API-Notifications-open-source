@@ -59,30 +59,30 @@
                                         </p>
                                     </td>
                                     <td>
-                                        <div
-                                            style="display: flex; flex-direction: column; align-content: center; flex-wrap: wrap; max-width: fit-content;"
-                                            {if $notification->description}
-                                                data-toggle="popover"
-                                                title="{lkn_hn_lang text=$notification->code}"
-                                                data-content="{lkn_hn_lang text=$notification->description}"
-                                                data-trigger="hover"
-                                            {/if}
-                                        >
-                                            <p>
+                                        <div style="display: flex; flex-direction: column; align-content: center; flex-wrap: wrap; max-width: fit-content;">
+                                            <p style="margin-bottom: 2px;">
                                                 {* Notificações dinâmicas exibem o label; as demais exibem o código traduzido *}
                                                 {if isset($notification->label) && $notification->label}
                                                     {$notification->label}
                                                 {else}
                                                     {lkn_hn_lang text=$notification->code}
                                                 {/if}
-                                                {if $notification->description}<i class="far fa-question-circle"></i>{/if}
+
+                                                {* Ícone ? sempre visível — popover inicializado via JS com descrição, hook e destinatário *}
+                                                <i
+                                                    class="far fa-question-circle text-muted notif-help-icon"
+                                                    style="cursor: pointer; margin-left: 4px;"
+                                                    data-notif-name="{if isset($notification->label) && $notification->label}{$notification->label|escape:'html'}{else}{$notification->code|escape:'html'}{/if}"
+                                                    data-notif-description="{if $notification->description}{$notification->description|escape:'html'}{/if}"
+                                                    data-notif-hook="{$notification->hook->value|escape:'html'}"
+                                                ></i>
                                             </p>
 
                                             {if $notification->hook->value}
                                                 <a
                                                     href="https://developers.whmcs.com/hooks/hook-index/#:~:text={$notification->hook->value}"
                                                     target="_blank"
-                                                    style="font-size: 0.9rem; color: gray;"
+                                                    style="font-size: 0.85rem; color: gray;"
                                                 >{$notification->hook->value}</a>
                                             {/if}
                                         </div>
@@ -265,4 +265,36 @@
             </div>
         </div>
     </div>
+
+    <script type="text/javascript">
+        {* Inicializa o popover do ícone ? com descrição, hook disparador e destinatário *}
+        $(function () {
+            $('.notif-help-icon').each(function () {
+                var name  = $(this).data('notif-name');
+                var desc  = $(this).data('notif-description');
+                var hook  = $(this).data('notif-hook');
+
+                var content = '';
+
+                if (desc) {
+                    content += '<p style="margin-bottom:6px;">' + $('<div>').text(desc).html() + '</p>';
+                    content += '<hr style="margin:4px 0 8px;">';
+                }
+
+                content += '<small>';
+                content += '<b>{lkn_hn_lang text="Triggered by"}:</b> ' + $('<div>').text(hook).html() + '<br>';
+                content += '<b>{lkn_hn_lang text="Recipient"}:</b> {lkn_hn_lang text="Client"}';
+                content += '</small>';
+
+                $(this).popover({
+                    html:      true,
+                    trigger:   'hover focus',
+                    placement: 'right',
+                    title:     $('<div>').text(name).html(),
+                    content:   content,
+                    container: 'body'
+                });
+            });
+        });
+    </script>
 {/block}
