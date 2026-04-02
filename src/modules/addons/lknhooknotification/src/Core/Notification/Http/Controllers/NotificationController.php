@@ -273,6 +273,7 @@ final class NotificationController extends BaseController
             'order'   => lkn_hn_lang('Order'),
             'ticket'  => lkn_hn_lang('Ticket'),
             'module'  => lkn_hn_lang('Service'),
+            'domain'  => lkn_hn_lang('Domain'),
         ];
 
         $this->view->view('create_edit_custom_notification', [

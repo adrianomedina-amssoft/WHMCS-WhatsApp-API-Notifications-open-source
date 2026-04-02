@@ -520,3 +520,22 @@ $_ADDONLANG['Ticket mask']                        = 'Máscara do ticket';
 $_ADDONLANG['Subject']                            = 'Assunto';
 $_ADDONLANG['Service ID']                         = 'ID do serviço';
 $_ADDONLANG['Select a recipe above to see the available variables.'] = 'Selecione uma receita acima para ver as variáveis disponíveis.';
+
+// Variáveis de cliente, serviço, domínio e sistema (v4.5.0)
+$_ADDONLANG['Client phone']                       = 'Telefone do cliente';
+$_ADDONLANG['Client company']                     = 'Empresa do cliente';
+$_ADDONLANG['Invoice status']                     = 'Estado da fatura';
+$_ADDONLANG['Invoice URL']                        = 'URL da fatura';
+$_ADDONLANG['Ticket URL']                         = 'URL do ticket';
+$_ADDONLANG['Service name']                       = 'Nome do serviço';
+$_ADDONLANG['Service domain']                     = 'Domínio do serviço';
+$_ADDONLANG['Service due date']                   = 'Vencimento do serviço';
+$_ADDONLANG['Service status']                     = 'Estado do serviço';
+$_ADDONLANG['Domain name']                        = 'Nome do domínio';
+$_ADDONLANG['Domain expiry date']                 = 'Data de expiração do domínio';
+$_ADDONLANG['Domain days until expiry']           = 'Dias até à expiração do domínio';
+$_ADDONLANG['System']                             = 'Sistema';
+$_ADDONLANG['Company name']                       = 'Nome da empresa';
+$_ADDONLANG['Company email']                      = 'E-mail da empresa';
+$_ADDONLANG['Date today']                         = 'Data de hoje';
+$_ADDONLANG['WHMCS URL']                          = 'URL do WHMCS';

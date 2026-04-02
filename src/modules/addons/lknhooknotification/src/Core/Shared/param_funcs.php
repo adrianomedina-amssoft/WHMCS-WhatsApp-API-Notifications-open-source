@@ -523,3 +523,122 @@ function get_user_password_reset_token_by_user_email(string $email): string
 
     return $resetToken;
 }
+
+// Funções auxiliares adicionadas em v4.5.0 para suportar o painel de variáveis no-code
+
+function getClientPhoneByClientId(int $clientId): string
+{
+    return Capsule::table('tblclients')
+        ->where('id', $clientId)
+        ->value('phonenumber') ?? '';
+}
+
+function getClientCompanyByClientId(int $clientId): string
+{
+    return Capsule::table('tblclients')
+        ->where('id', $clientId)
+        ->value('companyname') ?? '';
+}
+
+function getInvoiceStatusByInvoiceId(int $invoiceId): string
+{
+    return Capsule::table('tblinvoices')
+        ->where('id', $invoiceId)
+        ->value('status') ?? '';
+}
+
+function getInvoiceUrlByInvoiceId(int $invoiceId): string
+{
+    return systemUrl() . '/viewinvoice.php?id=' . $invoiceId;
+}
+
+function getTicketUrlByTicketId(int $ticketId): string
+{
+    $tid   = Capsule::table('tbltickets')->where('id', $ticketId)->value('tid') ?? '';
+    $email = Capsule::table('tbltickets')->where('id', $ticketId)->value('email') ?? '';
+
+    return systemUrl() . '/viewticket.php?tid=' . urlencode($tid) . '&c=' . urlencode($email);
+}
+
+function getServiceNameByServiceId(int $serviceId): string
+{
+    $productId = Capsule::table('tblhosting')
+        ->where('id', $serviceId)
+        ->value('packageid');
+
+    if (!$productId) {
+        return '';
+    }
+
+    return Capsule::table('tblproducts')
+        ->where('id', $productId)
+        ->value('name') ?? '';
+}
+
+function getServiceDomainByServiceId(int $serviceId): string
+{
+    return Capsule::table('tblhosting')
+        ->where('id', $serviceId)
+        ->value('domain') ?? '';
+}
+
+function getServiceDueDateByServiceId(int $serviceId): string
+{
+    $isoDate = Capsule::table('tblhosting')
+        ->where('id', $serviceId)
+        ->value('nextduedate');
+
+    return $isoDate ? (new DateTime($isoDate))->format('d/m/Y') : '';
+}
+
+function getServiceStatusByServiceId(int $serviceId): string
+{
+    return Capsule::table('tblhosting')
+        ->where('id', $serviceId)
+        ->value('domainstatus') ?? '';
+}
+
+function getDomainNameByDomainId(int $domainId): string
+{
+    return Capsule::table('tbldomains')
+        ->where('id', $domainId)
+        ->value('domain') ?? '';
+}
+
+function getDomainExpiryDateByDomainId(int $domainId): string
+{
+    $isoDate = Capsule::table('tbldomains')
+        ->where('id', $domainId)
+        ->value('nextduedate');
+
+    return $isoDate ? (new DateTime($isoDate))->format('d/m/Y') : '';
+}
+
+function getDomainDaysUntilExpiryByDomainId(int $domainId): int
+{
+    $isoDate = Capsule::table('tbldomains')
+        ->where('id', $domainId)
+        ->value('nextduedate');
+
+    if (!$isoDate) {
+        return 0;
+    }
+
+    $diff = (new DateTime())->diff(new DateTime($isoDate));
+
+    return (int) $diff->format('%r%a');
+}
+
+function getWhmcsCompanyName(): string
+{
+    return Capsule::table('tblconfiguration')
+        ->where('setting', 'CompanyName')
+        ->value('value') ?? '';
+}
+
+function getWhmcsAdminEmail(): string
+{
+    return Capsule::table('tblconfiguration')
+        ->where('setting', 'Email')
+        ->value('value') ?? '';
+}

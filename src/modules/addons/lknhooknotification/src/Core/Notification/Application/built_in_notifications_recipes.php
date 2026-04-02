@@ -34,6 +34,16 @@ return [
                 fn (): string => getInvoicePdfUrlByInvocieId($this->whmcsHookParams['invoiceid'])
             ),
             new NotificationParameter(
+                'invoice_url',
+                lkn_hn_lang('Invoice URL'),
+                fn (): string => getInvoiceUrlByInvoiceId($this->whmcsHookParams['invoiceid'])
+            ),
+            new NotificationParameter(
+                'invoice_status',
+                lkn_hn_lang('Invoice status'),
+                fn (): string => getInvoiceStatusByInvoiceId($this->whmcsHookParams['invoiceid'])
+            ),
+            new NotificationParameter(
                 'invoice_balance',
                 lkn_hn_lang('invoice_balance'),
                 fn (): string => getInvoiceBalance($this->whmcsHookParams['invoiceid'])
@@ -59,14 +69,44 @@ return [
                 fn () => getClientFirstNameByClientId($this->clientId)
             ),
             new NotificationParameter(
+                'client_full_name',
+                lkn_hn_lang('client_full_name'),
+                fn () => getClientFullNameByClientId($this->clientId)
+            ),
+            new NotificationParameter(
                 'client_email',
                 lkn_hn_lang('client_email'),
                 fn () => getClientEmailByClientId($this->clientId)
             ),
             new NotificationParameter(
-                'client_full_name',
-                lkn_hn_lang('client_full_name'),
-                fn () => getClientFullNameByClientId($this->clientId)
+                'client_phone',
+                lkn_hn_lang('Client phone'),
+                fn () => getClientPhoneByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_company',
+                lkn_hn_lang('Client company'),
+                fn () => getClientCompanyByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'company_name',
+                lkn_hn_lang('Company name'),
+                fn (): string => getWhmcsCompanyName()
+            ),
+            new NotificationParameter(
+                'company_email',
+                lkn_hn_lang('Company email'),
+                fn (): string => getWhmcsAdminEmail()
+            ),
+            new NotificationParameter(
+                'date_today',
+                lkn_hn_lang('Date today'),
+                fn (): string => (new \DateTime())->format('d/m/Y')
+            ),
+            new NotificationParameter(
+                'whmcs_url',
+                lkn_hn_lang('WHMCS URL'),
+                fn (): string => systemUrl()
             ),
         ]),
         'hooks' => [
@@ -108,6 +148,41 @@ return [
                 lkn_hn_lang('client_full_name'),
                 fn () => getClientFullNameByClientId($this->clientId)
             ),
+            new NotificationParameter(
+                'client_email',
+                lkn_hn_lang('client_email'),
+                fn () => getClientEmailByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_phone',
+                lkn_hn_lang('Client phone'),
+                fn () => getClientPhoneByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_company',
+                lkn_hn_lang('Client company'),
+                fn () => getClientCompanyByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'company_name',
+                lkn_hn_lang('Company name'),
+                fn (): string => getWhmcsCompanyName()
+            ),
+            new NotificationParameter(
+                'company_email',
+                lkn_hn_lang('Company email'),
+                fn (): string => getWhmcsAdminEmail()
+            ),
+            new NotificationParameter(
+                'date_today',
+                lkn_hn_lang('Date today'),
+                fn (): string => (new \DateTime())->format('d/m/Y')
+            ),
+            new NotificationParameter(
+                'whmcs_url',
+                lkn_hn_lang('WHMCS URL'),
+                fn (): string => systemUrl()
+            ),
         ]),
         'hooks' => [
             Hooks::ORDER_PAID,
@@ -141,6 +216,11 @@ return [
                 fn () => $this->whmcsHookParams['status']
             ),
             new NotificationParameter(
+                'ticket_url',
+                lkn_hn_lang('Ticket URL'),
+                fn (): string => getTicketUrlByTicketId($this->whmcsHookParams['ticketid'])
+            ),
+            new NotificationParameter(
                 'client_first_name',
                 lkn_hn_lang('client_first_name'),
                 fn () => empty($this->clientId)
@@ -153,6 +233,41 @@ return [
                 fn () => empty($this->clientId)
                     ? getTicketNameColumn($this->whmcsHookParams['ticketid'])
                     : getClientFullNameByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_email',
+                lkn_hn_lang('client_email'),
+                fn () => getClientEmailByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_phone',
+                lkn_hn_lang('Client phone'),
+                fn () => getClientPhoneByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_company',
+                lkn_hn_lang('Client company'),
+                fn () => getClientCompanyByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'company_name',
+                lkn_hn_lang('Company name'),
+                fn (): string => getWhmcsCompanyName()
+            ),
+            new NotificationParameter(
+                'company_email',
+                lkn_hn_lang('Company email'),
+                fn (): string => getWhmcsAdminEmail()
+            ),
+            new NotificationParameter(
+                'date_today',
+                lkn_hn_lang('Date today'),
+                fn (): string => (new \DateTime())->format('d/m/Y')
+            ),
+            new NotificationParameter(
+                'whmcs_url',
+                lkn_hn_lang('WHMCS URL'),
+                fn (): string => systemUrl()
             ),
         ]),
         'hooks' => [
@@ -186,6 +301,26 @@ return [
                 fn () => $this->whmcsHookParams['params']['serviceid']
             ),
             new NotificationParameter(
+                'service_name',
+                lkn_hn_lang('Service name'),
+                fn (): string => getServiceNameByServiceId($this->whmcsHookParams['params']['serviceid'])
+            ),
+            new NotificationParameter(
+                'service_domain',
+                lkn_hn_lang('Service domain'),
+                fn (): string => getServiceDomainByServiceId($this->whmcsHookParams['params']['serviceid'])
+            ),
+            new NotificationParameter(
+                'service_due_date',
+                lkn_hn_lang('Service due date'),
+                fn (): string => getServiceDueDateByServiceId($this->whmcsHookParams['params']['serviceid'])
+            ),
+            new NotificationParameter(
+                'service_status',
+                lkn_hn_lang('Service status'),
+                fn (): string => getServiceStatusByServiceId($this->whmcsHookParams['params']['serviceid'])
+            ),
+            new NotificationParameter(
                 'client_first_name',
                 lkn_hn_lang('client_first_name'),
                 fn () => getClientFirstNameByClientId($this->clientId)
@@ -194,6 +329,41 @@ return [
                 'client_full_name',
                 lkn_hn_lang('client_full_name'),
                 fn () => getClientFullNameByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_email',
+                lkn_hn_lang('client_email'),
+                fn () => getClientEmailByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_phone',
+                lkn_hn_lang('Client phone'),
+                fn () => getClientPhoneByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_company',
+                lkn_hn_lang('Client company'),
+                fn () => getClientCompanyByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'company_name',
+                lkn_hn_lang('Company name'),
+                fn (): string => getWhmcsCompanyName()
+            ),
+            new NotificationParameter(
+                'company_email',
+                lkn_hn_lang('Company email'),
+                fn (): string => getWhmcsAdminEmail()
+            ),
+            new NotificationParameter(
+                'date_today',
+                lkn_hn_lang('Date today'),
+                fn (): string => (new \DateTime())->format('d/m/Y')
+            ),
+            new NotificationParameter(
+                'whmcs_url',
+                lkn_hn_lang('WHMCS URL'),
+                fn (): string => systemUrl()
             ),
         ]),
         'hooks' => [
@@ -219,6 +389,76 @@ return [
             // Hooks::AFTER_MODULE_UNSUSPEND_ADD_ON_FEATURE,
             // Hooks::AFTER_MODULE_UNSUSPEND_ADD_ON_FEATURE_FAILED,
             // Hooks::AFTER_MODULE_UNSUSPEND_FAILED,
+        ],
+    ],
+    'domain' => [
+        'category' => NotificationReportCategory::DOMAIN,
+        'categoryIdFinder' => fn (): int => $this->whmcsHookParams['domain_id'],
+        'clientIdFinder' => fn (): int => $this->whmcsHookParams['client_id'],
+        'params' => new NotificationParameterCollection([
+            new NotificationParameter(
+                'domain_name',
+                lkn_hn_lang('Domain name'),
+                fn (): string => getDomainNameByDomainId($this->whmcsHookParams['domain_id'])
+            ),
+            new NotificationParameter(
+                'domain_expiry_date',
+                lkn_hn_lang('Domain expiry date'),
+                fn (): string => getDomainExpiryDateByDomainId($this->whmcsHookParams['domain_id'])
+            ),
+            new NotificationParameter(
+                'domain_days_until_expiry',
+                lkn_hn_lang('Domain days until expiry'),
+                fn (): int => getDomainDaysUntilExpiryByDomainId($this->whmcsHookParams['domain_id'])
+            ),
+            new NotificationParameter(
+                'client_first_name',
+                lkn_hn_lang('client_first_name'),
+                fn () => getClientFirstNameByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_full_name',
+                lkn_hn_lang('client_full_name'),
+                fn () => getClientFullNameByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_email',
+                lkn_hn_lang('client_email'),
+                fn () => getClientEmailByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_phone',
+                lkn_hn_lang('Client phone'),
+                fn () => getClientPhoneByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'client_company',
+                lkn_hn_lang('Client company'),
+                fn () => getClientCompanyByClientId($this->clientId)
+            ),
+            new NotificationParameter(
+                'company_name',
+                lkn_hn_lang('Company name'),
+                fn (): string => getWhmcsCompanyName()
+            ),
+            new NotificationParameter(
+                'company_email',
+                lkn_hn_lang('Company email'),
+                fn (): string => getWhmcsAdminEmail()
+            ),
+            new NotificationParameter(
+                'date_today',
+                lkn_hn_lang('Date today'),
+                fn (): string => (new \DateTime())->format('d/m/Y')
+            ),
+            new NotificationParameter(
+                'whmcs_url',
+                lkn_hn_lang('WHMCS URL'),
+                fn (): string => systemUrl()
+            ),
+        ]),
+        'hooks' => [
+            Hooks::DAILY_CRON_JOB,
         ],
     ],
 ];

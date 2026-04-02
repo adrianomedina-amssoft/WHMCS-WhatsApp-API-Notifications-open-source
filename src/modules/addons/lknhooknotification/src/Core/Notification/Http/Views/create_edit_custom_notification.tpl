@@ -230,60 +230,105 @@
                         {lkn_hn_lang text="Available variables"}
                     </h3>
                 </div>
-                <div class="panel-body">
-                    <p class="text-muted" style="font-size:0.85em;">
+                <div class="panel-body" style="padding: 10px 15px;">
+                    <p class="text-muted" style="font-size:0.82em; margin-bottom: 8px;">
                         {lkn_hn_lang text="Click a variable to insert it at cursor position in the template."}
                     </p>
 
+                    {* Placeholder exibido antes de selecionar uma receita *}
+                    <p id="vars-placeholder" class="text-muted" style="font-size:0.85em;">
+                        {lkn_hn_lang text="Select a recipe above to see the available variables."}
+                    </p>
+
+                    {* Macro reutilizável para o bloco de cliente — comum a todas as receitas *}
+                    {capture name="client_vars"}
+                        <strong style="font-size:0.8em; text-transform:uppercase; color:#888;">{lkn_hn_lang text="Client"}</strong>
+                        <ul class="list-unstyled" style="margin: 4px 0 10px; font-size:0.88em;">
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_first_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_first_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client first name"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_full_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_full_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client full name"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_email{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_email{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client email"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_phone{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_phone{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client phone"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_company{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_company{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client company"}</li>
+                        </ul>
+                    {/capture}
+
+                    {* Macro reutilizável para variáveis de sistema — comum a todas as receitas *}
+                    {capture name="system_vars"}
+                        <strong style="font-size:0.8em; text-transform:uppercase; color:#888;">{lkn_hn_lang text="System"}</strong>
+                        <ul class="list-unstyled" style="margin: 4px 0 0; font-size:0.88em;">
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}company_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}company_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Company name"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}company_email{rdelim}{rdelim}"><code>{ldelim}{ldelim}company_email{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Company email"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}date_today{rdelim}{rdelim}"><code>{ldelim}{ldelim}date_today{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Date today"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}whmcs_url{rdelim}{rdelim}"><code>{ldelim}{ldelim}whmcs_url{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="WHMCS URL"}</li>
+                        </ul>
+                    {/capture}
+
+                    {* Receita: Fatura *}
                     <div id="vars-invoice" class="vars-group" style="display:none;">
-                        <strong>{lkn_hn_lang text="Invoice"}</strong>
-                        <ul class="list-unstyled" style="margin-top:6px; font-size:0.9em;">
+                        <strong style="font-size:0.8em; text-transform:uppercase; color:#888;">{lkn_hn_lang text="Invoice"}</strong>
+                        <ul class="list-unstyled" style="margin: 4px 0 10px; font-size:0.88em;">
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}invoice_id{rdelim}{rdelim}"><code>{ldelim}{ldelim}invoice_id{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Invoice ID"}</li>
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}invoice_total{rdelim}{rdelim}"><code>{ldelim}{ldelim}invoice_total{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Total amount"}</li>
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}invoice_balance{rdelim}{rdelim}"><code>{ldelim}{ldelim}invoice_balance{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Balance due"}</li>
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}invoice_due_date{rdelim}{rdelim}"><code>{ldelim}{ldelim}invoice_due_date{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Due date"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}invoice_items{rdelim}{rdelim}"><code>{ldelim}{ldelim}invoice_items{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Invoice items"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}invoice_status{rdelim}{rdelim}"><code>{ldelim}{ldelim}invoice_status{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Invoice status"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}invoice_url{rdelim}{rdelim}"><code>{ldelim}{ldelim}invoice_url{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Invoice URL"}</li>
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}invoice_pdf_url{rdelim}{rdelim}"><code>{ldelim}{ldelim}invoice_pdf_url{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="PDF link"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_first_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_first_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client first name"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_full_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_full_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client full name"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_email{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_email{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client email"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}invoice_items{rdelim}{rdelim}"><code>{ldelim}{ldelim}invoice_items{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Invoice items"}</li>
                         </ul>
+                        {$smarty.capture.client_vars}
+                        {$smarty.capture.system_vars}
                     </div>
 
+                    {* Receita: Pedido *}
                     <div id="vars-order" class="vars-group" style="display:none;">
-                        <strong>{lkn_hn_lang text="Order"}</strong>
-                        <ul class="list-unstyled" style="margin-top:6px; font-size:0.9em;">
+                        <strong style="font-size:0.8em; text-transform:uppercase; color:#888;">{lkn_hn_lang text="Order"}</strong>
+                        <ul class="list-unstyled" style="margin: 4px 0 10px; font-size:0.88em;">
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}order_id{rdelim}{rdelim}"><code>{ldelim}{ldelim}order_id{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Order ID"}</li>
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}order_items_descrip{rdelim}{rdelim}"><code>{ldelim}{ldelim}order_items_descrip{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Order items"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_first_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_first_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client first name"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_full_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_full_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client full name"}</li>
                         </ul>
+                        {$smarty.capture.client_vars}
+                        {$smarty.capture.system_vars}
                     </div>
 
+                    {* Receita: Ticket *}
                     <div id="vars-ticket" class="vars-group" style="display:none;">
-                        <strong>{lkn_hn_lang text="Ticket"}</strong>
-                        <ul class="list-unstyled" style="margin-top:6px; font-size:0.9em;">
+                        <strong style="font-size:0.8em; text-transform:uppercase; color:#888;">{lkn_hn_lang text="Ticket"}</strong>
+                        <ul class="list-unstyled" style="margin: 4px 0 10px; font-size:0.88em;">
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}ticket_id{rdelim}{rdelim}"><code>{ldelim}{ldelim}ticket_id{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Ticket ID"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}ticket_mask{rdelim}{rdelim}"><code>{ldelim}{ldelim}ticket_mask{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Ticket mask"}</li>
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}ticket_subject{rdelim}{rdelim}"><code>{ldelim}{ldelim}ticket_subject{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Subject"}</li>
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}ticket_status{rdelim}{rdelim}"><code>{ldelim}{ldelim}ticket_status{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Status"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_first_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_first_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client first name"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_full_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_full_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client full name"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}ticket_url{rdelim}{rdelim}"><code>{ldelim}{ldelim}ticket_url{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Ticket URL"}</li>
                         </ul>
+                        {$smarty.capture.client_vars}
+                        {$smarty.capture.system_vars}
                     </div>
 
+                    {* Receita: Serviço *}
                     <div id="vars-module" class="vars-group" style="display:none;">
-                        <strong>{lkn_hn_lang text="Service"}</strong>
-                        <ul class="list-unstyled" style="margin-top:6px; font-size:0.9em;">
+                        <strong style="font-size:0.8em; text-transform:uppercase; color:#888;">{lkn_hn_lang text="Service"}</strong>
+                        <ul class="list-unstyled" style="margin: 4px 0 10px; font-size:0.88em;">
                             <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}service_id{rdelim}{rdelim}"><code>{ldelim}{ldelim}service_id{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Service ID"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_first_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_first_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client first name"}</li>
-                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}client_full_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}client_full_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Client full name"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}service_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}service_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Service name"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}service_domain{rdelim}{rdelim}"><code>{ldelim}{ldelim}service_domain{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Service domain"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}service_due_date{rdelim}{rdelim}"><code>{ldelim}{ldelim}service_due_date{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Service due date"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}service_status{rdelim}{rdelim}"><code>{ldelim}{ldelim}service_status{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Service status"}</li>
                         </ul>
+                        {$smarty.capture.client_vars}
+                        {$smarty.capture.system_vars}
                     </div>
 
-                    <p id="vars-placeholder" class="text-muted" style="font-size:0.85em;">
-                        {lkn_hn_lang text="Select a recipe above to see the available variables."}
-                    </p>
+                    {* Receita: Domínio *}
+                    <div id="vars-domain" class="vars-group" style="display:none;">
+                        <strong style="font-size:0.8em; text-transform:uppercase; color:#888;">{lkn_hn_lang text="Domain"}</strong>
+                        <ul class="list-unstyled" style="margin: 4px 0 10px; font-size:0.88em;">
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}domain_name{rdelim}{rdelim}"><code>{ldelim}{ldelim}domain_name{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Domain name"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}domain_expiry_date{rdelim}{rdelim}"><code>{ldelim}{ldelim}domain_expiry_date{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Domain expiry date"}</li>
+                            <li><a href="#" class="var-insert" data-var="{ldelim}{ldelim}domain_days_until_expiry{rdelim}{rdelim}"><code>{ldelim}{ldelim}domain_days_until_expiry{rdelim}{rdelim}</code></a> — {lkn_hn_lang text="Domain days until expiry"}</li>
+                        </ul>
+                        {$smarty.capture.client_vars}
+                        {$smarty.capture.system_vars}
+                    </div>
                 </div>
             </div>
         </div>
