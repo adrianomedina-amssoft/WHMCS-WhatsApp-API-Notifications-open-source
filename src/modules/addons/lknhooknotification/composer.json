@@ -16,7 +16,13 @@
         "bin-dir": "./vendor/bin",
         "platform-check": "php-only",
         "platform": {
-            "php": "8.1"
+            "php": "8.3"
+        },
+        "audit": {
+            "abandoned": "ignore",
+            "ignore": {
+                "PKSA-p3w6-ybvq-zfbx": "Used internally only, not exposed to user input"
+            }
         }
     },
     "autoload": {

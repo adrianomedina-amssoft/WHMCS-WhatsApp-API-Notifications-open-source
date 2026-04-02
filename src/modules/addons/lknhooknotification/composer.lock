@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "94ac65d90d64adfb1d17bd4023ffa671",
+    "content-hash": "6ee59c78330587edd874aa69f6f876dd",
     "packages": [
         {
             "name": "setasign/fpdf",
@@ -126,16 +126,16 @@
         },
         {
             "name": "spatie/pdf-to-image",
-            "version": "3.1.0",
+            "version": "3.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/spatie/pdf-to-image.git",
-                "reference": "acc31c5236180e475c09c1a5c68412876f0bd89a"
+                "reference": "eb46281e228a2b9723d12c13c365d90b28b99253"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/spatie/pdf-to-image/zipball/acc31c5236180e475c09c1a5c68412876f0bd89a",
-                "reference": "acc31c5236180e475c09c1a5c68412876f0bd89a",
+                "url": "https://api.github.com/repos/spatie/pdf-to-image/zipball/eb46281e228a2b9723d12c13c365d90b28b99253",
+                "reference": "eb46281e228a2b9723d12c13c365d90b28b99253",
                 "shasum": ""
             },
             "require": {
@@ -143,7 +143,7 @@
                 "php": "^8.2"
             },
             "require-dev": {
-                "pestphp/pest": "^2.34"
+                "pestphp/pest": "^2.34|^3.0|^4.0"
             },
             "type": "library",
             "autoload": {
@@ -180,7 +180,7 @@
             ],
             "support": {
                 "issues": "https://github.com/spatie/pdf-to-image/issues",
-                "source": "https://github.com/spatie/pdf-to-image/tree/3.1.0"
+                "source": "https://github.com/spatie/pdf-to-image/tree/3.2.0"
             },
             "funding": [
                 {
@@ -192,7 +192,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2024-09-14T17:02:32+00:00"
+            "time": "2026-02-09T14:43:55+00:00"
         }
     ],
     "packages-dev": [],
@@ -204,7 +204,7 @@
     "platform": {},
     "platform-dev": {},
     "platform-overrides": {
-        "php": "8.1"
+        "php": "8.3"
     },
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
