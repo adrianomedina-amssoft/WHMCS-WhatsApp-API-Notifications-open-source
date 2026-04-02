@@ -457,3 +457,66 @@ $_ADDONLANG['Select a platform'] = 'Selecione uma plataforma';
 $_ADDONLANG['No bulk messages.'] = 'Sem mensagens em massa ainda.';
 $_ADDONLANG['BirthdayClientNotification'] = 'Aniversario do cliente';
 $_ADDONLANG['UserLoginNotification'] = 'Login de usuario';
+
+// Notificações — listagem e formulário de criação (v4.5.0)
+$_ADDONLANG['New Notification']                   = 'Nova Notificação';
+$_ADDONLANG['How to create your own notification?'] = 'Como criar a sua própria notificação?';
+$_ADDONLANG['Templates']                          = 'Templates';
+$_ADDONLANG['Setup template']                     = 'Configurar template';
+$_ADDONLANG['Clone']                              = 'Clonar';
+$_ADDONLANG['Clone this notification']            = 'Clonar esta notificação';
+$_ADDONLANG['Clone this notification?']           = 'Clonar esta notificação?';
+$_ADDONLANG['Are you sure you want to delete this notification and all its templates?'] = 'Tem a certeza de que deseja eliminar esta notificação e todos os seus templates?';
+$_ADDONLANG['This template will not be sent because its is disabled.'] = 'Este template não será enviado porque a sua plataforma está desativada.';
+$_ADDONLANG['Triggered by']                       = 'Acionada por';
+$_ADDONLANG['Recipient']                          = 'Destinatário';
+$_ADDONLANG['Notification deleted successfully.'] = 'Notificação eliminada com sucesso.';
+
+// Formulário de criação de notificação customizada
+$_ADDONLANG['Back to list']                       = 'Voltar para a lista';
+$_ADDONLANG['Notification settings']              = 'Configurações da notificação';
+$_ADDONLANG['Notification name']                  = 'Nome da notificação';
+$_ADDONLANG['Ex: Invoice overdue for 3 days']     = 'Ex: Fatura vencida há 3 dias';
+$_ADDONLANG['Descriptive name shown in the notification list.'] = 'Nome descritivo apresentado na lista de notificações.';
+$_ADDONLANG['Internal code']                      = 'Código interno';
+$_ADDONLANG['Unique identifier. Only letters, numbers and underscores. Cannot be changed after creation.'] = 'Identificador único. Apenas letras, números e underscores. Não pode ser alterado após a criação.';
+$_ADDONLANG['Hook / Trigger']                     = 'Hook / Gatilho';
+$_ADDONLANG['WHMCS event that triggers this notification.'] = 'Evento do WHMCS que aciona esta notificação.';
+$_ADDONLANG['Select a hook...']                   = 'Selecione um hook...';
+$_ADDONLANG['Days of delay']                      = 'Dias de atraso';
+$_ADDONLANG['Number of days overdue (invoice) or until expiry (domain) to trigger this notification.'] = 'Número de dias de atraso (fatura) ou até ao vencimento (domínio) para acionar esta notificação.';
+$_ADDONLANG['Ex: 3']                              = 'Ex: 3';
+$_ADDONLANG['Example: 3 = fires when invoice is 3 days overdue.'] = 'Exemplo: 3 = aciona quando a fatura está 3 dias em atraso.';
+$_ADDONLANG['Base recipe']                        = 'Receita base';
+$_ADDONLANG['Determines which variables will be available in the message template (client name, invoice ID, etc.).'] = 'Define quais variáveis estarão disponíveis no template de mensagem (nome do cliente, ID da fatura, etc.).';
+$_ADDONLANG['Select a recipe...']                 = 'Selecione uma receita...';
+$_ADDONLANG['Condition (optional)']               = 'Condição (opcional)';
+$_ADDONLANG['Optional note about when this notification should fire. Example: only for clients in group X.'] = 'Nota opcional sobre quando esta notificação deve ser acionada. Ex: apenas para clientes do grupo X.';
+$_ADDONLANG['Ex: Only for invoices above R$100']  = 'Ex: Apenas para faturas acima de R$100';
+$_ADDONLANG['Briefly describe what this notification does and when it fires.'] = 'Descreva brevemente o que esta notificação faz e quando é acionada.';
+$_ADDONLANG['Message template']                   = 'Template de mensagem';
+$_ADDONLANG['WhatsApp message. Use the variables shown on the right. You can add more templates later.'] = 'Mensagem para WhatsApp. Utilize as variáveis mostradas à direita. Pode adicionar mais templates posteriormente.';
+$_ADDONLANG['Leave blank to configure later. Language:'] = 'Deixe em branco para configurar posteriormente. Idioma:';
+$_ADDONLANG['Platform:']                          = 'Plataforma:';
+$_ADDONLANG['Disabled notifications are ignored even if they have configured templates.'] = 'Notificações desativadas são ignoradas mesmo que tenham templates configurados.';
+$_ADDONLANG['Save notification']                  = 'Guardar notificação';
+
+// Painel de variáveis do template
+$_ADDONLANG['Available variables']                = 'Variáveis disponíveis';
+$_ADDONLANG['Click a variable to insert it at cursor position in the template.'] = 'Clique numa variável para a inserir na posição do cursor no template.';
+$_ADDONLANG['Invoice ID']                         = 'ID da fatura';
+$_ADDONLANG['Total amount']                       = 'Valor total';
+$_ADDONLANG['Balance due']                        = 'Saldo em dívida';
+$_ADDONLANG['Due date']                           = 'Data de vencimento';
+$_ADDONLANG['Invoice items']                      = 'Itens da fatura';
+$_ADDONLANG['PDF link']                           = 'Link do PDF';
+$_ADDONLANG['Client first name']                  = 'Primeiro nome do cliente';
+$_ADDONLANG['Client full name']                   = 'Nome completo do cliente';
+$_ADDONLANG['Client email']                       = 'E-mail do cliente';
+$_ADDONLANG['Order ID']                           = 'ID da encomenda';
+$_ADDONLANG['Order items']                        = 'Itens da encomenda';
+$_ADDONLANG['Ticket ID']                          = 'ID do ticket';
+$_ADDONLANG['Ticket mask']                        = 'Máscara do ticket';
+$_ADDONLANG['Subject']                            = 'Assunto';
+$_ADDONLANG['Service ID']                         = 'ID do serviço';
+$_ADDONLANG['Select a recipe above to see the available variables.'] = 'Selecione uma receita acima para ver as variáveis disponíveis.';
