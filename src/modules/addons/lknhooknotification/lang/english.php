@@ -134,3 +134,26 @@ $_ADDONLANG['client_tickets_url'] = 'Client Tickets URL';
 $_ADDONLANG['client_invoices_url'] = 'Client Invoices URL';
 $_ADDONLANG['BirthdayClientNotification'] = 'Birthday Client';
 $_ADDONLANG['UserLoginNotification'] = 'User Login Notification';
+
+// Hook dropdown — curated list for no-code builder
+$_ADDONLANG['Scheduled (Cron)']              = 'Scheduled (Cron)';
+$_ADDONLANG['hook_InvoiceCreated']           = 'Invoice created — new invoice generated for the client';
+$_ADDONLANG['hook_InvoicePaid']              = 'Invoice paid — client completed the payment';
+$_ADDONLANG['hook_InvoiceUnpaid']            = 'Invoice unpaid — due date passed without payment';
+$_ADDONLANG['hook_InvoiceCancelled']         = 'Invoice cancelled — invoice was cancelled in the system';
+$_ADDONLANG['hook_InvoiceSplit']             = 'Invoice split — invoice was separated into multiple ones';
+$_ADDONLANG['hook_InvoiceChangeGateway']     = 'Gateway changed — payment method of the invoice was switched';
+$_ADDONLANG['hook_OrderPaid']                = 'Order paid — order was paid by the client';
+$_ADDONLANG['hook_AfterShoppingCartCheckout'] = 'Cart checked out — client completed the purchase';
+$_ADDONLANG['hook_CancelOrder']              = 'Order cancelled — order was cancelled';
+$_ADDONLANG['hook_TicketOpen']               = 'Ticket opened — client opened a new support ticket';
+$_ADDONLANG['hook_TicketAdminReply']         = 'Admin replied — staff replied to a ticket';
+$_ADDONLANG['hook_TicketClose']              = 'Ticket closed — ticket was closed';
+$_ADDONLANG['hook_AfterModuleCreate']        = 'Service created — new service provisioned successfully';
+$_ADDONLANG['hook_AfterModuleSuspend']       = 'Service suspended — service was suspended (e.g. non-payment)';
+$_ADDONLANG['hook_AfterModuleUnsuspend']     = 'Service reactivated — suspended service was restored';
+$_ADDONLANG['hook_AfterModuleTerminate']     = 'Service terminated — service was permanently cancelled';
+$_ADDONLANG['hook_DomainTransferCompleted']  = 'Transfer completed — domain transferred successfully';
+$_ADDONLANG['hook_ClientAdd']                = 'Client registered — new client created an account';
+$_ADDONLANG['hook_ClientEdit']               = 'Client updated — client data was changed';
+$_ADDONLANG['hook_DailyCronJob']             = 'Daily cron — use with the "Days" field for overdue invoices or domain expiry';

@@ -543,3 +543,26 @@ $_ADDONLANG['Company name']                       = 'Nome da empresa';
 $_ADDONLANG['Company email']                      = 'E-mail da empresa';
 $_ADDONLANG['Date today']                         = 'Data de hoje';
 $_ADDONLANG['WHMCS URL']                          = 'URL do WHMCS';
+
+// Hook dropdown — lista curada para o no-code builder
+$_ADDONLANG['Scheduled (Cron)']               = 'Agendado (Cron)';
+$_ADDONLANG['hook_InvoiceCreated']            = 'Fatura criada — nova fatura gerada para o cliente';
+$_ADDONLANG['hook_InvoicePaid']               = 'Fatura paga — cliente efectuou o pagamento';
+$_ADDONLANG['hook_InvoiceUnpaid']             = 'Fatura não paga — prazo ultrapassado sem pagamento';
+$_ADDONLANG['hook_InvoiceCancelled']          = 'Fatura cancelada — fatura foi cancelada no sistema';
+$_ADDONLANG['hook_InvoiceSplit']              = 'Fatura dividida — fatura foi separada em múltiplas';
+$_ADDONLANG['hook_InvoiceChangeGateway']      = 'Gateway alterado — método de pagamento da fatura foi trocado';
+$_ADDONLANG['hook_OrderPaid']                 = 'Encomenda paga — encomenda foi paga pelo cliente';
+$_ADDONLANG['hook_AfterShoppingCartCheckout'] = 'Carrinho finalizado — cliente concluiu a compra';
+$_ADDONLANG['hook_CancelOrder']               = 'Encomenda cancelada — encomenda foi cancelada';
+$_ADDONLANG['hook_TicketOpen']                = 'Ticket aberto — cliente abriu um novo ticket de suporte';
+$_ADDONLANG['hook_TicketAdminReply']          = 'Resposta do admin — equipa respondeu a um ticket';
+$_ADDONLANG['hook_TicketClose']               = 'Ticket encerrado — ticket foi fechado';
+$_ADDONLANG['hook_AfterModuleCreate']         = 'Serviço criado — novo serviço aprovisionado com sucesso';
+$_ADDONLANG['hook_AfterModuleSuspend']        = 'Serviço suspenso — serviço foi suspenso (ex: falta de pagamento)';
+$_ADDONLANG['hook_AfterModuleUnsuspend']      = 'Serviço reactivado — serviço suspenso foi restaurado';
+$_ADDONLANG['hook_AfterModuleTerminate']      = 'Serviço encerrado — serviço foi cancelado definitivamente';
+$_ADDONLANG['hook_DomainTransferCompleted']   = 'Transferência concluída — domínio transferido com sucesso';
+$_ADDONLANG['hook_ClientAdd']                 = 'Cliente registado — novo cliente criou uma conta';
+$_ADDONLANG['hook_ClientEdit']                = 'Cliente actualizado — dados do cliente foram alterados';
+$_ADDONLANG['hook_DailyCronJob']              = 'Cron diário — use com o campo "Dias" para atraso de fatura ou expiração de domínio';

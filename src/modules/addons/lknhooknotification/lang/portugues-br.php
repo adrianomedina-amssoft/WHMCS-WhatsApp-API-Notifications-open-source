@@ -544,3 +544,26 @@ $_ADDONLANG['Company email']                      = 'E-mail da empresa';
 $_ADDONLANG['Date today']                         = 'Data de hoje';
 $_ADDONLANG['WHMCS URL']                          = 'URL do WHMCS';
 $_ADDONLANG['Notification Settings '] = 'Configurar Notificação ';
+
+// Hook dropdown — lista curada para o no-code builder
+$_ADDONLANG['Scheduled (Cron)']               = 'Agendado (Cron)';
+$_ADDONLANG['hook_InvoiceCreated']            = 'Fatura criada — nova fatura gerada para o cliente';
+$_ADDONLANG['hook_InvoicePaid']               = 'Fatura paga — cliente efetuou o pagamento';
+$_ADDONLANG['hook_InvoiceUnpaid']             = 'Fatura não paga — vencimento passou sem pagamento';
+$_ADDONLANG['hook_InvoiceCancelled']          = 'Fatura cancelada — fatura foi cancelada no sistema';
+$_ADDONLANG['hook_InvoiceSplit']              = 'Fatura dividida — fatura foi separada em múltiplas';
+$_ADDONLANG['hook_InvoiceChangeGateway']      = 'Gateway alterado — forma de pagamento da fatura foi trocada';
+$_ADDONLANG['hook_OrderPaid']                 = 'Pedido pago — pedido foi pago pelo cliente';
+$_ADDONLANG['hook_AfterShoppingCartCheckout'] = 'Carrinho finalizado — cliente concluiu a compra';
+$_ADDONLANG['hook_CancelOrder']               = 'Pedido cancelado — pedido foi cancelado';
+$_ADDONLANG['hook_TicketOpen']                = 'Ticket aberto — cliente abriu um novo ticket de suporte';
+$_ADDONLANG['hook_TicketAdminReply']          = 'Resposta do admin — equipe respondeu um ticket';
+$_ADDONLANG['hook_TicketClose']               = 'Ticket encerrado — ticket foi fechado';
+$_ADDONLANG['hook_AfterModuleCreate']         = 'Serviço criado — novo serviço provisionado com sucesso';
+$_ADDONLANG['hook_AfterModuleSuspend']        = 'Serviço suspenso — serviço foi suspenso (ex: inadimplência)';
+$_ADDONLANG['hook_AfterModuleUnsuspend']      = 'Serviço reativado — serviço suspenso foi restaurado';
+$_ADDONLANG['hook_AfterModuleTerminate']      = 'Serviço encerrado — serviço foi cancelado definitivamente';
+$_ADDONLANG['hook_DomainTransferCompleted']   = 'Transferência concluída — domínio transferido com sucesso';
+$_ADDONLANG['hook_ClientAdd']                 = 'Cliente cadastrado — novo cliente criou uma conta';
+$_ADDONLANG['hook_ClientEdit']                = 'Cliente atualizado — dados do cliente foram alterados';
+$_ADDONLANG['hook_DailyCronJob']              = 'Cron diário — use com o campo "Dias" para atraso de fatura ou vencimento de domínio';

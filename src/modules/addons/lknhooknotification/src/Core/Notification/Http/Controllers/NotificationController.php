@@ -397,36 +397,48 @@ final class NotificationController extends BaseController
     }
 
     /**
-     * Monta os hooks do WHMCS agrupados por categoria para exibição no dropdown.
+     * Retorna lista curada de hooks WHMCS relevantes para o no-code builder,
+     * agrupados por categoria com nome e descrição em pt-BR (via lkn_hn_lang).
      *
      * @return array<string, array<string, string>>
      */
     private function buildHookGroups(): array
     {
-        $groups = [];
-
-        foreach (Hooks::cases() as $hook) {
-            // Determina o grupo com base no prefixo do nome do hook
-            $group = match (true) {
-                str_starts_with($hook->value, 'Invoice')  => lkn_hn_lang('Invoice'),
-                str_starts_with($hook->value, 'Order')    => lkn_hn_lang('Order'),
-                str_starts_with($hook->value, 'Ticket')   => lkn_hn_lang('Ticket'),
-                str_starts_with($hook->value, 'Client')   => lkn_hn_lang('Client'),
-                str_starts_with($hook->value, 'Domain')   => lkn_hn_lang('Domain'),
-                str_starts_with($hook->value, 'AfterModule'),
-                str_starts_with($hook->value, 'PreModule')  => lkn_hn_lang('Service'),
-                str_starts_with($hook->value, 'Daily'),
-                str_starts_with($hook->value, 'After')    => lkn_hn_lang('Cron / Automation'),
-                str_starts_with($hook->value, 'User')     => lkn_hn_lang('User'),
-                str_starts_with($hook->value, 'Quote')    => lkn_hn_lang('Quote'),
-                default                                    => lkn_hn_lang('Other'),
-            };
-
-            $groups[$group][$hook->value] = $hook->value;
-        }
-
-        ksort($groups);
-
-        return $groups;
+        return [
+            lkn_hn_lang('Invoice') => [
+                'InvoiceCreated'       => lkn_hn_lang('hook_InvoiceCreated'),
+                'InvoicePaid'          => lkn_hn_lang('hook_InvoicePaid'),
+                'InvoiceUnpaid'        => lkn_hn_lang('hook_InvoiceUnpaid'),
+                'InvoiceCancelled'     => lkn_hn_lang('hook_InvoiceCancelled'),
+                'InvoiceSplit'         => lkn_hn_lang('hook_InvoiceSplit'),
+                'InvoiceChangeGateway' => lkn_hn_lang('hook_InvoiceChangeGateway'),
+            ],
+            lkn_hn_lang('Order') => [
+                'OrderPaid'                 => lkn_hn_lang('hook_OrderPaid'),
+                'AfterShoppingCartCheckout' => lkn_hn_lang('hook_AfterShoppingCartCheckout'),
+                'CancelOrder'               => lkn_hn_lang('hook_CancelOrder'),
+            ],
+            lkn_hn_lang('Ticket') => [
+                'TicketOpen'        => lkn_hn_lang('hook_TicketOpen'),
+                'TicketAdminReply'  => lkn_hn_lang('hook_TicketAdminReply'),
+                'TicketClose'       => lkn_hn_lang('hook_TicketClose'),
+            ],
+            lkn_hn_lang('Service') => [
+                'AfterModuleCreate'    => lkn_hn_lang('hook_AfterModuleCreate'),
+                'AfterModuleSuspend'   => lkn_hn_lang('hook_AfterModuleSuspend'),
+                'AfterModuleUnsuspend' => lkn_hn_lang('hook_AfterModuleUnsuspend'),
+                'AfterModuleTerminate' => lkn_hn_lang('hook_AfterModuleTerminate'),
+            ],
+            lkn_hn_lang('Domain') => [
+                'DomainTransferCompleted' => lkn_hn_lang('hook_DomainTransferCompleted'),
+            ],
+            lkn_hn_lang('Client') => [
+                'ClientAdd'  => lkn_hn_lang('hook_ClientAdd'),
+                'ClientEdit' => lkn_hn_lang('hook_ClientEdit'),
+            ],
+            lkn_hn_lang('Scheduled (Cron)') => [
+                'DailyCronJob' => lkn_hn_lang('hook_DailyCronJob'),
+            ],
+        ];
     }
 }
