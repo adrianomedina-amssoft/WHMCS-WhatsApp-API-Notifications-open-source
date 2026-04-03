@@ -195,8 +195,8 @@ function getInvoicePdfUrlByInvocieId(
 
     $pdfContent = pdfInvoice($id);
 
-    $randonPrefix   = (string) random_int(0, 100000);
-    $randomFileName = uniqid($randonPrefix, true) . '.pdf';
+    // Usar random_bytes para gerar nome criptograficamente seguro
+    $randomFileName = bin2hex(random_bytes(16)) . '.pdf';
 
     $pdfPath = __DIR__ . '/../../Core/temp/invoices_pdf/' . $randomFileName;
 
@@ -229,7 +229,8 @@ function getInvoiceImgUrlByInvoiceId(
         return null;
     }
 
-    $imageName = uniqid('invoice_', false) . '.png';
+    // Usar random_bytes para gerar nome criptograficamente seguro
+    $imageName = bin2hex(random_bytes(16)) . '.png';
     $imagePath = __DIR__ . '/../../Core/temp/invoices_img/' . $imageName;
 
     $pdf    = new Pdf($pdfSystemPath);

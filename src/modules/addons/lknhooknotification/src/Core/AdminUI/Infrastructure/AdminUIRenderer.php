@@ -38,6 +38,11 @@ final class AdminUIRenderer
         $postParams = json_decode(file_get_contents('php://input'), true) ?? $_POST;
         $getParams  = $_GET;
 
+        // Validar token CSRF do WHMCS em requisições POST para prevenir ataques CSRF
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            check_token();
+        }
+
         unset($postParams['token']);
         unset($getParams['module']);
         unset($getParams['page']);

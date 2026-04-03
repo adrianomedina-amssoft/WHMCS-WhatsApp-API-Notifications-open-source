@@ -45,7 +45,8 @@ final class LogsController extends BaseController
                 $log->response = htmlentities(json_encode($log->response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
                 $log->request  = htmlentities(json_encode($log->request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             } catch (\Throwable $th) {
-                     echo $th;
+                // Logar internamente sem expor detalhes do stack trace ao usuário
+                lkn_hn_log('Error processing log entry', ['error' => $th->getMessage()]);
             }
         }
 

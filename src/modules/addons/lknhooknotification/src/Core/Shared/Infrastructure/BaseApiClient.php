@@ -14,24 +14,25 @@ abstract class BaseApiClient
     ): ApiResponse {
         $requestUrl = "$baseUrl/$endpoint";
 
-        $queryParamsStr = '';
-
+        // Usar http_build_query para codificar corretamente os parâmetros e evitar injeção de URL
         if (count($queryParams) > 0) {
-            foreach ($queryParams as $key => $value) {
-                $queryParamsStr .= "$key=$value&";
-            }
-
-            $requestUrl .= '?' . rtrim($queryParamsStr, '&');
+            $requestUrl .= '?' . http_build_query($queryParams);
         }
 
         $curlHandle = curl_init();
 
         $curlOptions = [
-            CURLOPT_URL => $requestUrl,
+            CURLOPT_URL            => $requestUrl,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_CUSTOMREQUEST  => $method,
+            CURLOPT_HTTPHEADER     => $headers,
+            // Timeout para evitar DoS por APIs externas lentas
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            // Verificação de certificado SSL para evitar ataques MITM
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
         ];
 
         if (in_array($method, ['POST', 'PUT'], true)) {
@@ -49,13 +50,23 @@ abstract class BaseApiClient
 
         $response = curl_exec($curlHandle);
 
+        // Tratar falha de conexão antes de tentar decodificar a resposta
+        if ($response === false) {
+            $curlError = curl_error($curlHandle);
+            curl_close($curlHandle);
+
+            lkn_hn_log('HTTP request failed', ['error' => $curlError, 'url' => $requestUrl]);
+
+            return new ApiResponse(0, []);
+        }
+
         $httpCode = curl_getinfo($curlHandle, CURLINFO_HTTP_CODE);
 
         curl_close($curlHandle);
 
         return new ApiResponse(
             $httpCode,
-            json_decode($response, true)
+            json_decode($response, true) ?? []
         );
     }
 }
