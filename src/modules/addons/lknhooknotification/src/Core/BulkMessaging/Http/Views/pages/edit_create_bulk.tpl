@@ -2,9 +2,9 @@
 
 {block "page_title"}
     {if $page_params.mode === 'edit'}
-        {lkn_hn_lang text="Bulk message - #[1] [2]" params=[$page_params.bulk->id, $page_params.bulk->title]}
+        {lkn_hn_lang text="Campaign #[1] — [2]" params=[$page_params.bulk->id, $page_params.bulk->title]}
     {else}
-        {lkn_hn_lang text="New bulk message" params=[$page_params.platform_title]}
+        {lkn_hn_lang text="New Campaign"}
     {/if}
 {/block}
 
@@ -788,11 +788,160 @@
             {/if}
 
 
+            {* ── RECURRENCE PANEL (create only) ───────────────────────────── *}
             {if $page_params.mode !== 'edit'}
-                <div
-                    class="form-group"
-                    style="margin-top: 60px;"
-                >
+                <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="headingRecurrence">
+                        <h4 class="panel-title">
+                            <a class="collapsed" role="button" data-toggle="collapse"
+                               data-parent="#accordion" href="#collapseRecurrence"
+                               aria-expanded="false" aria-controls="collapseRecurrence">
+                                {lkn_hn_lang text="Recurrence"}
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="collapseRecurrence" class="panel-collapse collapse" role="tabpanel">
+                        <div class="panel-body">
+
+                            {* Recurrence type *}
+                            <div class="form-group">
+                                <label for="recurrence-type" class="col-sm-6 control-label">
+                                    {lkn_hn_lang text="Recurrence type"}
+                                </label>
+                                <div class="col-sm-6">
+                                    <select class="form-control" id="recurrence-type" name="recurrence-type"
+                                        onchange="lknHnToggleRecurrenceFields(this.value)">
+                                        {foreach from=$page_params.field_options.recurrence_types item=$rt}
+                                            <option value="{$rt.value}"
+                                                {if $page_params.state->recurrenceType === $rt.value}selected{/if}>
+                                                {$rt.label}
+                                            </option>
+                                        {/foreach}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {* DAILY / CUSTOM: interval in days *}
+                            <div class="form-group lkn-rec-daily lkn-rec-custom" style="display:none;">
+                                <label class="col-sm-6 control-label">{lkn_hn_lang text="Repeat every (days)"}</label>
+                                <div class="col-sm-6">
+                                    <input type="number" min="1" max="365" class="form-control"
+                                        name="recurrence-interval" id="recurrence-interval" value="1">
+                                </div>
+                            </div>
+
+                            {* WEEKLY: days of week + interval *}
+                            <div class="form-group lkn-rec-weekly" style="display:none;">
+                                <label class="col-sm-6 control-label">{lkn_hn_lang text="Days of week"}</label>
+                                <div class="col-sm-6">
+                                    {foreach from=[0,1,2,3,4,5,6] item=$dow}
+                                        <label class="checkbox-inline">
+                                            <input type="checkbox" name="recurrence-days-of-week[]" value="{$dow}">
+                                            {if $dow === 0}{lkn_hn_lang text="Sun"}
+                                            {elseif $dow === 1}{lkn_hn_lang text="Mon"}
+                                            {elseif $dow === 2}{lkn_hn_lang text="Tue"}
+                                            {elseif $dow === 3}{lkn_hn_lang text="Wed"}
+                                            {elseif $dow === 4}{lkn_hn_lang text="Thu"}
+                                            {elseif $dow === 5}{lkn_hn_lang text="Fri"}
+                                            {else}{lkn_hn_lang text="Sat"}{/if}
+                                        </label>
+                                    {/foreach}
+                                </div>
+                            </div>
+
+                            {* MONTHLY: day of month *}
+                            <div class="form-group lkn-rec-monthly" style="display:none;">
+                                <label class="col-sm-6 control-label">{lkn_hn_lang text="Day of month"}</label>
+                                <div class="col-sm-6">
+                                    <select class="form-control" name="recurrence-day-of-month">
+                                        {foreach from=range(1,28) item=$d}
+                                            <option value="{$d}">{$d}</option>
+                                        {/foreach}
+                                        <option value="first_business">{lkn_hn_lang text="First business day"}</option>
+                                        <option value="last_business">{lkn_hn_lang text="Last business day"}</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {* End date (all recurring types) *}
+                            <div class="form-group lkn-rec-daily lkn-rec-weekly lkn-rec-monthly lkn-rec-custom" style="display:none;">
+                                <label class="col-sm-6 control-label">{lkn_hn_lang text="End date (optional)"}</label>
+                                <div class="col-sm-6">
+                                    <input type="datetime-local" class="form-control" name="end-at" id="end-at"
+                                        {if $page_params.state->endAt}value="{$page_params.state->endAt->format('Y-m-d\TH:i')}"{/if}>
+                                    <span class="help-block">{lkn_hn_lang text="Leave empty for no end date."}</span>
+                                </div>
+                            </div>
+
+                            {* Preview next dates *}
+                            {if !empty($page_params.preview_dates)}
+                                <div class="form-group">
+                                    <div class="col-sm-12">
+                                        <strong>{lkn_hn_lang text="Next 5 scheduled dates"}:</strong>
+                                        <ul style="margin-top:8px;">
+                                            {foreach from=$page_params.preview_dates item=$pd}
+                                                <li>{$pd->format('d/m/Y H:i')}</li>
+                                            {/foreach}
+                                        </ul>
+                                    </div>
+                                </div>
+                            {/if}
+
+                        </div>
+                    </div>
+                </div>
+            {/if}
+
+            {* Campaign runs history (edit mode, recurring only) *}
+            {if $page_params.mode === 'edit' && $page_params.bulk->isRecurring() && !empty($page_params.campaign_runs)}
+                <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="headingRuns">
+                        <h4 class="panel-title">
+                            <a class="collapsed" role="button" data-toggle="collapse"
+                               data-parent="#accordion" href="#collapseRuns"
+                               aria-expanded="false" aria-controls="collapseRuns">
+                                {lkn_hn_lang text="Dispatch History"}
+                                <span class="badge">{count($page_params.campaign_runs)}</span>
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="collapseRuns" class="panel-collapse collapse" role="tabpanel">
+                        <div class="panel-body" style="padding:0;">
+                            <table class="table table-condensed table-hover" style="margin-bottom:0;">
+                                <thead>
+                                    <tr>
+                                        <th>{lkn_hn_lang text="Started at"}</th>
+                                        <th>{lkn_hn_lang text="Completed at"}</th>
+                                        <th>{lkn_hn_lang text="Clients reached"}</th>
+                                        <th>{lkn_hn_lang text="Status"}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {foreach from=$page_params.campaign_runs item=$run}
+                                        <tr>
+                                            <td>{$run->started_at}</td>
+                                            <td>{if $run->completed_at}{$run->completed_at}{else}-{/if}</td>
+                                            <td>{$run->clients_reached}</td>
+                                            <td>
+                                                {if $run->status === 'completed'}
+                                                    <span class="label label-success">{lkn_hn_lang text="Completed"}</span>
+                                                {elseif $run->status === 'in_progress'}
+                                                    <span class="label label-info">{lkn_hn_lang text="In progress"}</span>
+                                                {else}
+                                                    <span class="label label-default">{$run->status}</span>
+                                                {/if}
+                                            </td>
+                                        </tr>
+                                    {/foreach}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {/if}
+
+            {if $page_params.mode !== 'edit'}
+                <div class="form-group" style="margin-top: 60px;">
                     <div class="col-sm-12">
                         <button
                             type="submit"
@@ -801,11 +950,27 @@
                             onclick="return confirmSubmit('{lkn_hn_lang text='Do you really want to create the message? After confirmation, you will no longer be able to edit the message.'}')"
                             name="create-bulk"
                         >
-                            {lkn_hn_lang text="Create Bulk Message"}
+                            {lkn_hn_lang text="Create Campaign"}
                         </button>
                     </div>
                 </div>
             {/if}
+
+            <script type="text/javascript">
+                function lknHnToggleRecurrenceFields(type) {
+                    document.querySelectorAll('[class*="lkn-rec-"]').forEach(function(el) {
+                        el.style.display = 'none';
+                    });
+                    document.querySelectorAll('.lkn-rec-' + type).forEach(function(el) {
+                        el.style.display = '';
+                    });
+                }
+                // Init on page load
+                document.addEventListener('DOMContentLoaded', function() {
+                    var sel = document.getElementById('recurrence-type');
+                    if (sel) lknHnToggleRecurrenceFields(sel.value);
+                });
+            </script>
         </div>
     </form>
 {/block}

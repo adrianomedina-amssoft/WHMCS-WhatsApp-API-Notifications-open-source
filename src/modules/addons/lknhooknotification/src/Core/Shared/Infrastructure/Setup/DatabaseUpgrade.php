@@ -548,4 +548,44 @@ final class DatabaseUpgrade
             lkn_hn_log('Database 4.5.0 upgrade failed', null, $th->__toString());
         }
     }
+
+    /** Adds recurrence columns to bulks table and creates campaign_runs table (v4.6.0) */
+    public static function v460(): void
+    {
+        try {
+            Capsule::connection()->statement('
+                ALTER TABLE mod_lkn_hook_notification_bulks
+                    ADD COLUMN recurrence_type   VARCHAR(20) NULL DEFAULT \'once\' AFTER completed_at,
+                    ADD COLUMN recurrence_config TEXT        NULL               AFTER recurrence_type,
+                    ADD COLUMN next_run_at       DATETIME    NULL               AFTER recurrence_config,
+                    ADD COLUMN end_at            DATETIME    NULL               AFTER next_run_at
+            ');
+
+            lkn_hn_log('Database 4.6.0 alter bulks success', null, []);
+        } catch (Throwable $th) {
+            // Columns may already exist — safe to ignore duplicate column errors
+            lkn_hn_log('Database 4.6.0 alter bulks skipped or failed', null, $th->getMessage());
+        }
+
+        try {
+            $pdo = Capsule::connection()->getPdo();
+
+            $pdo->exec('
+                CREATE TABLE IF NOT EXISTS mod_lkn_hook_notification_campaign_runs (
+                    id              INT PRIMARY KEY AUTO_INCREMENT,
+                    campaign_id     INT NOT NULL,
+                    started_at      DATETIME NOT NULL,
+                    completed_at    DATETIME NULL,
+                    clients_reached INT DEFAULT 0,
+                    status          VARCHAR(50) NOT NULL DEFAULT \'in_progress\',
+                    FOREIGN KEY (campaign_id)
+                        REFERENCES mod_lkn_hook_notification_bulks(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ');
+
+            lkn_hn_log('Database 4.6.0 campaign_runs success', null, []);
+        } catch (Throwable $th) {
+            lkn_hn_log('Database 4.6.0 campaign_runs failed', null, $th->__toString());
+        }
+    }
 }

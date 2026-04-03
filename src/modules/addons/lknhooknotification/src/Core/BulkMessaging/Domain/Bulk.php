@@ -21,6 +21,16 @@ final class Bulk
         public readonly ?DateTime $completedAt,
         public readonly string $template,
         public readonly ?array $platformPayload,
+        // Recurrence fields (null for legacy one-time bulks)
+        public readonly string $recurrenceType = 'once',
+        public readonly ?array $recurrenceConfig = null,
+        public readonly ?DateTime $nextRunAt = null,
+        public readonly ?DateTime $endAt = null,
     ) {
+    }
+
+    public function isRecurring(): bool
+    {
+        return $this->recurrenceType !== 'once';
     }
 }

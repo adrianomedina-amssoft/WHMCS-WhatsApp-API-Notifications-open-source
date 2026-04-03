@@ -22,21 +22,7 @@ final class BulkRepository extends BaseRepository
     }
 
     /**
-     * @return object{
-     *     id: int,
-     *     status: string,
-     *     title: string,
-     *     description: string,
-     *     platform: string,
-     *     start_at: string,
-     *     max_concurrency: int,
-     *     filters: string,
-     *     progress: float,
-     *     created_at: string,
-     *     completed_at: ?string,
-     *     template: string,
-     *     platform_payload: string,
-     * }[]
+     * @return object[]
      */
     public function getInProgressBulks(): array
     {
@@ -51,21 +37,36 @@ final class BulkRepository extends BaseRepository
     }
 
     /**
-     * @return array{
-     *     id: int,
-     *     status: string,
-     *     title: string,
-     *     description: string,
-     *     platform: string,
-     *     start_at: string,
-     *     max_concurrency: int,
-     *     filters: string,
-     *     progress: float,
-     *     created_at: string,
-     *     completed_at: ?string,
-     *     template: string,
-     *     platform_payload: string,
-     * }
+     * Returns ACTIVE campaigns whose next_run_at has arrived, ordered by oldest first.
+     *
+     * @return object[]
+     */
+    public function getActiveCampaignsDue(): array
+    {
+        $result = $this->query
+            ->table('mod_lkn_hook_notification_bulks')
+            ->where('status', '=', BulkStatus::ACTIVE->value)
+            ->where('next_run_at', '<=', (new DateTime())->format('Y-m-d H:i:s'))
+            ->orderBy('next_run_at', 'asc')
+            ->get();
+
+        return $result->toArray();
+    }
+
+    /**
+     * Returns true if any campaign is currently IN_PROGRESS.
+     */
+    public function isAnyInProgress(): bool
+    {
+        return $this->query
+            ->table('mod_lkn_hook_notification_bulks')
+            ->where('status', '=', BulkStatus::IN_PROGRESS->value)
+            ->where('progress', '!=', 100)
+            ->exists();
+    }
+
+    /**
+     * @return array
      */
     public function getBulk(int $bulkId): array
     {
@@ -81,6 +82,7 @@ final class BulkRepository extends BaseRepository
     {
         $result = $this->query
                 ->table('mod_lkn_hook_notification_bulks')
+                ->orderBy('id', 'desc')
                 ->get();
 
         return $result->toArray();
@@ -97,25 +99,40 @@ final class BulkRepository extends BaseRepository
         float $progress,
         string $template,
         ?string $platformPayload,
+        string $recurrenceType = 'once',
+        ?string $recurrenceConfig = null,
+        ?string $nextRunAt = null,
+        ?string $endAt = null,
     ): int {
-        $bulkId = $this->query
-            ->table('mod_lkn_hook_notification_bulks')
-            ->insertGetId(
-                [
-                    'status' => $status,
-                    'title' => $title,
-                    'description' => $description,
-                    'platform' => $platform,
-                    'start_at' => $startAt,
-                    'max_concurrency' => $maxConcurrency,
-                    'filters' => lkn_hn_safe_json_encode($filters),
-                    'progress' => $progress,
-                    'template' => $template,
-                    'platform_payload' => $platformPayload,
-                ]
-            );
+        $data = [
+            'status'           => $status,
+            'title'            => $title,
+            'description'      => $description,
+            'platform'         => $platform,
+            'start_at'         => $startAt,
+            'max_concurrency'  => $maxConcurrency,
+            'filters'          => lkn_hn_safe_json_encode($filters),
+            'progress'         => $progress,
+            'template'         => $template,
+            'platform_payload' => $platformPayload,
+            'recurrence_type'  => $recurrenceType,
+        ];
 
-        return $bulkId;
+        if ($recurrenceConfig !== null) {
+            $data['recurrence_config'] = $recurrenceConfig;
+        }
+
+        if ($nextRunAt !== null) {
+            $data['next_run_at'] = $nextRunAt;
+        }
+
+        if ($endAt !== null) {
+            $data['end_at'] = $endAt;
+        }
+
+        return $this->query
+            ->table('mod_lkn_hook_notification_bulks')
+            ->insertGetId($data);
     }
 
     public function updateBulk(
@@ -124,6 +141,7 @@ final class BulkRepository extends BaseRepository
         ?string $completedAt = null,
         ?float $progress = null,
         ?string $startAt = null,
+        ?string $nextRunAt = null,
     ): int {
         $updateArray = [];
 
@@ -145,16 +163,21 @@ final class BulkRepository extends BaseRepository
             $updateArray['progress'] = $progress;
         }
 
+        if ($nextRunAt !== null) {
+            $updateArray['next_run_at'] = $nextRunAt;
+        }
+
         $result = $query->update($updateArray);
 
         lkn_hn_log(
             'Update bulk status',
             [
-                'bulk_id' => $bulkId,
-                'status' => $status,
+                'bulk_id'      => $bulkId,
+                'status'       => $status,
                 'completed_at' => $completedAt,
-                'start_at' => $startAt,
-                'progress' => $progress,
+                'start_at'     => $startAt,
+                'progress'     => $progress,
+                'next_run_at'  => $nextRunAt,
                 'update_array' => $updateArray,
             ],
             [
@@ -163,5 +186,56 @@ final class BulkRepository extends BaseRepository
         );
 
         return $result;
+    }
+
+    // -------------------------------------------------------------------------
+    // Campaign runs (dispatch history)
+    // -------------------------------------------------------------------------
+
+    public function insertCampaignRun(int $campaignId, string $startedAt): int
+    {
+        return $this->query
+            ->table('mod_lkn_hook_notification_campaign_runs')
+            ->insertGetId([
+                'campaign_id' => $campaignId,
+                'started_at'  => $startedAt,
+                'status'      => 'in_progress',
+            ]);
+    }
+
+    public function completeCampaignRun(int $runId, int $clientsReached): void
+    {
+        $this->query
+            ->table('mod_lkn_hook_notification_campaign_runs')
+            ->where('id', $runId)
+            ->update([
+                'completed_at'    => (new DateTime())->format('Y-m-d H:i:s'),
+                'clients_reached' => $clientsReached,
+                'status'          => 'completed',
+            ]);
+    }
+
+    /**
+     * @return object[]
+     */
+    public function getCampaignRuns(int $campaignId): array
+    {
+        return $this->query
+            ->table('mod_lkn_hook_notification_campaign_runs')
+            ->where('campaign_id', $campaignId)
+            ->orderBy('started_at', 'desc')
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Deletes all queue entries for a bulk (used before re-queuing for recurring run).
+     */
+    public function clearQueueForBulk(int $bulkId): void
+    {
+        $this->query
+            ->table('mod_lkn_hook_notification_notif_queue')
+            ->where('bulk_id', $bulkId)
+            ->delete();
     }
 }

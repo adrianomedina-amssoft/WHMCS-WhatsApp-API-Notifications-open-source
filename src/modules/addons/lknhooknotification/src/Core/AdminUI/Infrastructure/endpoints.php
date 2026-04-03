@@ -98,6 +98,24 @@ return [
             'viewNewBulkMessage',
         ],
     ],
+    'bulk/calendar' => [
+        'class' => [
+            BulkController::class,
+            'viewCalendar',
+        ],
+    ],
+    'bulk/duplicate' => [
+        'class' => [
+            BulkController::class,
+            'handleDuplicateCampaign',
+        ],
+    ],
+    'bulks/{bulkId}/history' => [
+        'class' => [
+            BulkController::class,
+            'viewCampaignHistory',
+        ],
+    ],
     'bulks/{bulkId}' => [
         'class' => [
             BulkController::class,

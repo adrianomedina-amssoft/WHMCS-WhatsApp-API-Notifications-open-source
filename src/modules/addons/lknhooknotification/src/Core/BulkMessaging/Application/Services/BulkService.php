@@ -21,12 +21,14 @@ final class BulkService
     private readonly BulkRepository $bulkRepository;
     private readonly NotificationQueueService $notificationQueueService;
     private readonly NotificationService $notificationService;
+    private readonly CampaignScheduler $scheduler;
 
     public function __construct()
     {
         $this->bulkRepository           = new BulkRepository();
         $this->notificationQueueService = new NotificationQueueService();
         $this->notificationService      = new NotificationService();
+        $this->scheduler                = new CampaignScheduler();
     }
 
     public function updateBulkMessageStatus(
@@ -45,7 +47,6 @@ final class BulkService
 
         if ($result) {
             if ($status === BulkStatus::ABORTED) {
-                /** @var QueuedNotification[] $inProgressBulkMessages */
                 [$inProgressBulkMessages, $x, $y] = $this->getInProgressBulkMessages($bulkId, 99999999);
 
                 foreach ($inProgressBulkMessages as $message) {
@@ -82,33 +83,58 @@ final class BulkService
     }
 
     /**
+     * Called by BulkDispatcher after a recurring campaign run completes.
+     * Calculates next_run_at and sets status back to ACTIVE (or COMPLETED if end_at passed).
+     */
+    public function advanceRecurringCampaign(Bulk $bulk): void
+    {
+        $nextRunAt = $this->scheduler->calculateNextRun(
+            $bulk->recurrenceType,
+            $bulk->recurrenceConfig ?? [],
+            new DateTime(),
+            $bulk->endAt,
+        );
+
+        if ($nextRunAt) {
+            $this->bulkRepository->updateBulk(
+                $bulk->id,
+                status: BulkStatus::ACTIVE->value,
+                nextRunAt: $nextRunAt->format('Y-m-d H:i:s'),
+                progress: 0.0,
+            );
+        } else {
+            // End date reached or no next run
+            $this->bulkRepository->updateBulk(
+                $bulk->id,
+                status: BulkStatus::COMPLETED->value,
+                completedAt: (new DateTime())->format('Y-m-d H:i:s'),
+            );
+        }
+    }
+
+    /**
      * @return Bulk[]
      */
-    public function getInProgressBulks()
+    public function getInProgressBulks(): array
     {
         $rawInProgressBulks = $this->bulkRepository->getInProgressBulks();
 
-        $bulks = [];
+        return array_map([$this, 'hydrateBulk'], $rawInProgressBulks);
+    }
 
-        foreach ($rawInProgressBulks as $rawBulk) {
-            $bulks[] = new Bulk(
-                $rawBulk->id,
-                BulkStatus::from($rawBulk->status),
-                $rawBulk->title,
-                $rawBulk->description,
-                Platforms::from($rawBulk->platform),
-                new DateTime($rawBulk->start_at),
-                $rawBulk->max_concurrency,
-                json_decode($rawBulk->filters, true),
-                $rawBulk->progress,
-                new DateTime($rawBulk->created_at),
-                $rawBulk->completed_at ? new DateTime($rawBulk->completed_at) : null,
-                $rawBulk->template,
-                json_decode($rawBulk->platform_payload, true),
-            );
-        }
+    /**
+     * Returns ACTIVE campaigns whose next_run_at has arrived (ordered oldest first).
+     *
+     * @return Bulk[]
+     */
+    public function getActiveCampaignsDue(): array
+    {
+        return array_map([$this, 'hydrateBulk'], $this->bulkRepository->getActiveCampaignsDue());
+    }
 
-        return $bulks;
+    public function isAnyInProgress(): bool
+    {
+        return $this->bulkRepository->isAnyInProgress();
     }
 
     /**
@@ -154,11 +180,9 @@ final class BulkService
 
         if (!empty($filters['client_locale'])) {
             $locales = (array) $filters['client_locale'];
-            
+
             $query->where(function ($q) use ($locales) {
-                $hasDefault = in_array('default', $locales, true) || in_array('', $locales, true);
-                
-                // CORREÇÃO: array_values aplicado para resetar as chaves do array filtrado
+                $hasDefault    = in_array('default', $locales, true) || in_array('', $locales, true);
                 $explicitLocales = array_values(array_filter($locales, fn($val) => $val !== 'default' && $val !== ''));
 
                 if (!empty($explicitLocales)) {
@@ -167,11 +191,11 @@ final class BulkService
 
                 if ($hasDefault) {
                     if (empty($explicitLocales)) {
-                         $q->whereNull('tblclients.language')
-                           ->orWhere('tblclients.language', '');
+                        $q->whereNull('tblclients.language')
+                          ->orWhere('tblclients.language', '');
                     } else {
-                         $q->orWhereNull('tblclients.language')
-                           ->orWhere('tblclients.language', '');
+                        $q->orWhereNull('tblclients.language')
+                          ->orWhere('tblclients.language', '');
                     }
                 }
             });
@@ -193,17 +217,20 @@ final class BulkService
             $query->whereIn('tblhosting.domainstatus', $filters['service_status']);
         }
 
+        // Client groups filter
+        if (!empty($filters['client_groups'])) {
+            $query->whereIn('tblclients.groupid', $filters['client_groups']);
+        }
+
         $query
             ->selectRaw(
                 "tblclients.id as value, CONCAT(tblclients.firstname, ' ', tblclients.lastname) as label"
             )
             ->distinct();
 
-        $result = $query->get();
-
         return array_map(
             fn ($item) => (array) $item,
-            $result->toArray()
+            $query->get()->toArray()
         );
     }
 
@@ -215,21 +242,7 @@ final class BulkService
             return null;
         }
 
-        return new Bulk(
-            $rawBulk['id'],
-            BulkStatus::from($rawBulk['status']),
-            $rawBulk['title'],
-            $rawBulk['description'],
-            Platforms::from($rawBulk['platform']),
-            new DateTime($rawBulk['start_at']),
-            $rawBulk['max_concurrency'],
-            json_decode($rawBulk['filters'], true),
-            $rawBulk['progress'],
-            new DateTime($rawBulk['created_at']),
-            new DateTime($rawBulk['completed_at']),
-            $rawBulk['template'],
-            json_decode($rawBulk['platform_payload'], true),
-        );
+        return $this->hydrateBulkFromArray($rawBulk);
     }
 
     /**
@@ -237,41 +250,14 @@ final class BulkService
      */
     public function getBulks(): array
     {
-        $rawBulk = $this->bulkRepository->getBulks();
+        $rawBulks = $this->bulkRepository->getBulks();
 
-        $bulks = [];
-
-        foreach ($rawBulk as $rawBulk) {
-            $bulks[] = new Bulk(
-                $rawBulk->id,
-                BulkStatus::from($rawBulk->status),
-                $rawBulk->title,
-                $rawBulk->description,
-                Platforms::from($rawBulk->platform),
-                new DateTime($rawBulk->start_at),
-                $rawBulk->max_concurrency,
-                json_decode($rawBulk->filters, true),
-                $rawBulk->progress,
-                new DateTime($rawBulk->created_at, new DateTimeZone('America/Sao_Paulo')),
-                $rawBulk->completed_at ? new DateTime($rawBulk->completed_at) : null,
-                $rawBulk->template,
-                json_decode($rawBulk->platform_payload, true),
-            );
-        }
-
-        return $bulks;
+        return array_map([$this, 'hydrateBulk'], $rawBulks);
     }
 
     /**
      * @param NewBulkRequest $newBulkRequest
-     * @param array{
-     * header-parameter?: string,
-     * body-parameters: array<int, string>,
-     * button-parameters: array<int, string>,
-     * message-template-lang: string,
-     * message-template: string,
-     * header-format: string
-     * } $rawFormPost
+     * @param array<mixed>   $rawFormPost
      *
      * @return Result
      */
@@ -288,19 +274,11 @@ final class BulkService
             if (!$platformPayloadResult->data) {
                 lkn_hn_log(
                     'bulk: parse meta whatsapp template',
-                    [
-                        'new_bulk_request' => $newBulkRequest,
-                        'raw_form_post' => $rawFormPost,
-                    ],
-                    [
-                        'platform_payload_result' => $platformPayloadResult->toArray(),
-                    ]
+                    ['new_bulk_request' => $newBulkRequest, 'raw_form_post' => $rawFormPost],
+                    ['platform_payload_result' => $platformPayloadResult->toArray()]
                 );
 
-                return lkn_hn_result(
-                    'error',
-                    msg: lkn_hn_lang('Unable to parse Meta WhatsApp template.')
-                );
+                return lkn_hn_result('error', msg: lkn_hn_lang('Unable to parse Meta WhatsApp template.'));
             }
 
             $template        = $platformPayloadResult->data['template'];
@@ -309,59 +287,150 @@ final class BulkService
             $template = $newBulkRequest->template;
         }
 
+        $isRecurring     = $newBulkRequest->recurrenceType !== 'once';
+        $recurrenceConfig = $newBulkRequest->recurrenceConfig
+            ? lkn_hn_safe_json_encode($newBulkRequest->recurrenceConfig)
+            : null;
+
+        // For recurring campaigns the initial status is ACTIVE; they don't run immediately.
+        // next_run_at is set to startAt so the dispatcher picks it up on the right date.
+        $status    = $isRecurring ? BulkStatus::ACTIVE->value : BulkStatus::IN_PROGRESS->value;
+        $nextRunAt = $isRecurring && $newBulkRequest->startAt
+            ? $newBulkRequest->startAt->format('Y-m-d H:i:s')
+            : null;
+
         $bulkId = $this->bulkRepository->insertBulk(
-            $newBulkRequest->title ?? '',
-            $newBulkRequest->status->value ?? '',
-            $newBulkRequest->descrip ?? '',
-            $newBulkRequest->platform->value ?? '',
-            $newBulkRequest->startAt ? $newBulkRequest->startAt->format('Y-m-d H:i:s') : '',
-            $newBulkRequest->maxConcurrency ?? 25,
-            $newBulkRequest->filters ?? [],
-            0.0,
-            $template ?? '',
-            $platformPayload ? lkn_hn_safe_json_encode($platformPayload) : null,
+            title:            $newBulkRequest->title ?? '',
+            status:           $status,
+            description:      $newBulkRequest->descrip ?? '',
+            platform:         $newBulkRequest->platform->value ?? '',
+            startAt:          $newBulkRequest->startAt ? $newBulkRequest->startAt->format('Y-m-d H:i:s') : '',
+            maxConcurrency:   $newBulkRequest->maxConcurrency ?? 25,
+            filters:          $newBulkRequest->filters ?? [],
+            progress:         0.0,
+            template:         $template ?? '',
+            platformPayload:  $platformPayload ? lkn_hn_safe_json_encode($platformPayload) : null,
+            recurrenceType:   $newBulkRequest->recurrenceType,
+            recurrenceConfig: $recurrenceConfig,
+            nextRunAt:        $nextRunAt,
+            endAt:            $newBulkRequest->endAt ? $newBulkRequest->endAt->format('Y-m-d H:i:s') : null,
         );
 
         if (!$bulkId) {
-            lkn_hn_log(
-                'Unable to queue bulk messages',
-                [
-                    'new_bulk_request' => $newBulkRequest,
-                    // CORREÇÃO: A linha 'client_ids' => $clientIds foi removida daqui, 
-                    // pois $clientIds não existe neste momento e causaria um Fatal Error.
-                ],
-                [
-                    'bulk_id' => $bulkId,
-                ]
-            );
-
             return lkn_hn_result(code: 'unable-to-create-bulk');
         }
 
+        // Recurring campaigns: do NOT pre-queue clients — re-evaluate on each dispatch
+        if ($isRecurring) {
+            return lkn_hn_result(code: 'success', data: ['bulk_id' => $bulkId]);
+        }
+
+        // One-time: queue clients now
         $clientIds = array_column($this->getClientsByFilter($newBulkRequest->filters), 'value');
 
         $result = $this->notificationQueueService->insertFromBulkToQueue($bulkId, $clientIds);
 
         if (!$result) {
-            lkn_hn_log(
-                'Unable to queue bulk messages',
-                [
-                    'bulk_id' => $bulkId,
-                    'new_bulk_request' => $newBulkRequest,
-                    'client_ids' => $clientIds,
-                ],
-                [
-                    'result' => $result,
-                ]
-            );
-
             return lkn_hn_result(code: 'unable-to-queue-bulk-messages');
         }
 
-         return lkn_hn_result(
-             code: 'success',
-             data: ['bulk_id' => $bulkId]
-         );
+        return lkn_hn_result(code: 'success', data: ['bulk_id' => $bulkId]);
+    }
+
+    /**
+     * Duplicates a campaign: copies all fields, resets progress/status/runs.
+     */
+    public function duplicateCampaign(int $id): Result
+    {
+        try {
+            $bulk = $this->getBulk($id);
+
+            if (!$bulk) {
+                return lkn_hn_result('error', errors: ['message' => "Campaign not found: {$id}"]);
+            }
+
+            $isRecurring = $bulk->isRecurring();
+            $newStatus   = $isRecurring ? BulkStatus::ACTIVE->value : BulkStatus::IN_PROGRESS->value;
+
+            $newId = $this->bulkRepository->insertBulk(
+                title:            lkn_hn_lang('Copy of') . ' ' . $bulk->title,
+                status:           $newStatus,
+                description:      $bulk->description ?? '',
+                platform:         $bulk->platform->value,
+                startAt:          (new DateTime())->modify('+1 hour')->format('Y-m-d H:i:s'),
+                maxConcurrency:   $bulk->maxConcurrency,
+                filters:          $bulk->filters,
+                progress:         0.0,
+                template:         $bulk->template,
+                platformPayload:  $bulk->platformPayload ? lkn_hn_safe_json_encode($bulk->platformPayload) : null,
+                recurrenceType:   $bulk->recurrenceType,
+                recurrenceConfig: $bulk->recurrenceConfig ? lkn_hn_safe_json_encode($bulk->recurrenceConfig) : null,
+                nextRunAt:        $isRecurring ? (new DateTime())->modify('+1 hour')->format('Y-m-d H:i:s') : null,
+                endAt:            $bulk->endAt ? $bulk->endAt->format('Y-m-d H:i:s') : null,
+            );
+
+            if (!$newId) {
+                return lkn_hn_result('error', errors: ['message' => 'Failed to insert duplicate']);
+            }
+
+            return lkn_hn_result('success', data: ['bulk_id' => $newId]);
+        } catch (Throwable $th) {
+            return lkn_hn_result('error', errors: ['exception' => $th->getMessage()]);
+        }
+    }
+
+    public function pauseCampaign(int $id): Result
+    {
+        try {
+            $bulk = $this->getBulk($id);
+
+            if (!$bulk) {
+                return lkn_hn_result('error', errors: ['message' => "Campaign not found: {$id}"]);
+            }
+
+            if (!$bulk->status->canPause()) {
+                return lkn_hn_result('error', errors: ['message' => 'Campaign cannot be paused in current status.']);
+            }
+
+            $this->bulkRepository->updateBulk($id, status: BulkStatus::PAUSED->value);
+
+            return lkn_hn_result('success');
+        } catch (Throwable $th) {
+            return lkn_hn_result('error', errors: ['exception' => $th->getMessage()]);
+        }
+    }
+
+    public function resumeCampaign(int $id): Result
+    {
+        try {
+            $bulk = $this->getBulk($id);
+
+            if (!$bulk) {
+                return lkn_hn_result('error', errors: ['message' => "Campaign not found: {$id}"]);
+            }
+
+            if (!$bulk->status->canResume()) {
+                return lkn_hn_result('error', errors: ['message' => 'Campaign cannot be resumed in current status.']);
+            }
+
+            // Recalculate next_run_at from now
+            $nextRunAt = $this->scheduler->calculateNextRun(
+                $bulk->recurrenceType,
+                $bulk->recurrenceConfig ?? [],
+                new DateTime(),
+                $bulk->endAt,
+            );
+
+            $this->bulkRepository->updateBulk(
+                $id,
+                status: BulkStatus::ACTIVE->value,
+                nextRunAt: $nextRunAt ? $nextRunAt->format('Y-m-d H:i:s') : null,
+            );
+
+            return lkn_hn_result('success');
+        } catch (Throwable $th) {
+            return lkn_hn_result('error', errors: ['exception' => $th->getMessage()]);
+        }
     }
 
     public function getBulkReportForView(int $bulkId)
@@ -371,6 +440,11 @@ final class BulkService
             withClient: true,
             withReport: true,
         );
+    }
+
+    public function getCampaignRuns(int $bulkId): array
+    {
+        return $this->bulkRepository->getCampaignRuns($bulkId);
     }
 
     public function resendBulkMessage(
@@ -386,31 +460,20 @@ final class BulkService
             );
 
             if (!$result) {
-                return lkn_hn_result(
-                    'error',
-                    msg: lkn_hn_lang('Unable to update messages status to waiting.')
-                );
+                return lkn_hn_result('error', msg: lkn_hn_lang('Unable to update messages status to waiting.'));
             }
 
             $processedCount = $totalBulkMessages - ($totalWaitingBulkMessages + 1);
+            $newProgress    = min(max(($processedCount / $totalBulkMessages) * 100, 0), 100);
 
-            $newProgress = min(max(($processedCount / $totalBulkMessages) * 100, 0), 100);
-
-            $result = $this->bulkRepository->updateBulk(
-                $bulkId,
-                progress: $newProgress,
-            );
+            $result = $this->bulkRepository->updateBulk($bulkId, progress: $newProgress);
 
             return lkn_hn_result(
                 $result ? 'success' : 'error',
                 msg: $result ? lkn_hn_lang('The message was queued.') : lkn_hn_lang('Unable to update bulk progress.'),
             );
         } catch (Throwable $th) {
-            return lkn_hn_result(
-                'error',
-                msg: 'Internal error',
-                errors: ['exception' => $th->__toString()]
-            );
+            return lkn_hn_result('error', msg: 'Internal error', errors: ['exception' => $th->__toString()]);
         }
     }
 
@@ -422,6 +485,76 @@ final class BulkService
                 status: BulkStatus::IN_PROGRESS->value,
                 startAt: (new DateTime())->format(DateTime::ATOM)
             )
+        );
+    }
+
+    /**
+     * Preview next N scheduled run dates for a campaign.
+     *
+     * @return DateTime[]
+     */
+    public function previewNextRuns(int $count, string $recurrenceType, array $config, DateTime $from, ?DateTime $endAt = null): array
+    {
+        return $this->scheduler->previewNextRuns($count, $recurrenceType, $config, $from, $endAt);
+    }
+
+    /**
+     * Returns calendar data for next 30 days across all campaigns.
+     *
+     * @return array
+     */
+    public function getCalendar(int $days = 30): array
+    {
+        return $this->scheduler->getCalendarData($this->getBulks(), $days);
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    private function hydrateBulk(object $rawBulk): Bulk
+    {
+        return new Bulk(
+            id:               $rawBulk->id,
+            status:           BulkStatus::from($rawBulk->status),
+            title:            $rawBulk->title,
+            description:      $rawBulk->description,
+            platform:         Platforms::from($rawBulk->platform),
+            startAt:          new DateTime($rawBulk->start_at),
+            maxConcurrency:   $rawBulk->max_concurrency,
+            filters:          json_decode($rawBulk->filters, true) ?? [],
+            progress:         $rawBulk->progress,
+            createdAt:        new DateTime($rawBulk->created_at, new DateTimeZone('America/Sao_Paulo')),
+            completedAt:      $rawBulk->completed_at ? new DateTime($rawBulk->completed_at) : null,
+            template:         $rawBulk->template,
+            platformPayload:  json_decode($rawBulk->platform_payload ?? 'null', true),
+            recurrenceType:   $rawBulk->recurrence_type ?? 'once',
+            recurrenceConfig: json_decode($rawBulk->recurrence_config ?? 'null', true),
+            nextRunAt:        !empty($rawBulk->next_run_at) ? new DateTime($rawBulk->next_run_at) : null,
+            endAt:            !empty($rawBulk->end_at) ? new DateTime($rawBulk->end_at) : null,
+        );
+    }
+
+    private function hydrateBulkFromArray(array $rawBulk): Bulk
+    {
+        return new Bulk(
+            id:               $rawBulk['id'],
+            status:           BulkStatus::from($rawBulk['status']),
+            title:            $rawBulk['title'],
+            description:      $rawBulk['description'] ?? null,
+            platform:         Platforms::from($rawBulk['platform']),
+            startAt:          new DateTime($rawBulk['start_at']),
+            maxConcurrency:   $rawBulk['max_concurrency'],
+            filters:          json_decode($rawBulk['filters'], true) ?? [],
+            progress:         $rawBulk['progress'],
+            createdAt:        new DateTime($rawBulk['created_at']),
+            completedAt:      !empty($rawBulk['completed_at']) ? new DateTime($rawBulk['completed_at']) : null,
+            template:         $rawBulk['template'],
+            platformPayload:  json_decode($rawBulk['platform_payload'] ?? 'null', true),
+            recurrenceType:   $rawBulk['recurrence_type'] ?? 'once',
+            recurrenceConfig: json_decode($rawBulk['recurrence_config'] ?? 'null', true),
+            nextRunAt:        !empty($rawBulk['next_run_at']) ? new DateTime($rawBulk['next_run_at']) : null,
+            endAt:            !empty($rawBulk['end_at']) ? new DateTime($rawBulk['end_at']) : null,
         );
     }
 }

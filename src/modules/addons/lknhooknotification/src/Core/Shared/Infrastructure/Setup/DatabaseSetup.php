@@ -29,7 +29,26 @@ final class DatabaseSetup
                     filters TEXT null,
                     progress FLOAT DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    completed_at DATETIME NULL
+                    completed_at DATETIME NULL,
+                    recurrence_type VARCHAR(20) NULL DEFAULT \'once\',
+                    recurrence_config TEXT NULL,
+                    next_run_at DATETIME NULL,
+                    end_at DATETIME NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;'
+            );
+
+            $statement->execute();
+
+            $statement = $pdo->prepare(
+                'CREATE TABLE IF NOT EXISTS mod_lkn_hook_notification_campaign_runs (
+                    id              INT PRIMARY KEY AUTO_INCREMENT,
+                    campaign_id     INT NOT NULL,
+                    started_at      DATETIME NOT NULL,
+                    completed_at    DATETIME NULL,
+                    clients_reached INT DEFAULT 0,
+                    status          VARCHAR(50) NOT NULL DEFAULT \'in_progress\',
+                    FOREIGN KEY (campaign_id)
+                        REFERENCES mod_lkn_hook_notification_bulks(id) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;'
             );
 
