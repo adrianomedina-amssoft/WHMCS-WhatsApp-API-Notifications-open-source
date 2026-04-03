@@ -68,9 +68,13 @@ final class BulkController extends BaseController
                     : ($result->errors['message'] ?? lkn_hn_lang('Could not resume campaign.')));
         }
 
-        $bulks = $this->bulkService->getBulks();
+        $bulks    = $this->bulkService->getBulks();
+        $calendar = $this->bulkService->getCalendar(7); // next 7 days inline
 
-        $this->view->view('pages/bulk_list', ['bulks' => $bulks]);
+        $this->view->view('pages/bulk_list', [
+            'bulks'    => $bulks,
+            'calendar' => $calendar,
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

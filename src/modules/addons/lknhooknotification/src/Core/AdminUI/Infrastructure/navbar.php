@@ -21,8 +21,8 @@ return [
             'icon' => 'fal fa-table',
         ],
         [
-            'label' => lkn_hn_lang('Bulk Messages'),
-            'icon' => 'far fa-mail-bulk',
+            'label' => lkn_hn_lang('WhatsApp Campaigns'),
+            'icon' => 'far fa-bullhorn',
             'endpoint' => 'bulk/list',
             'show' => lkn_hn_config(Settings::BULK_ENABLE),
         ],
