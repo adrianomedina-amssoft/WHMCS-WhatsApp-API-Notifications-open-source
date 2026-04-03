@@ -23,6 +23,7 @@ final class DatabaseSetup
                     `description` TEXT,
                     platform VARCHAR(255) NULL,
                     template TEXT NOT NULL,
+                    platform_payload TEXT NULL,
                     start_at DATETIME NOT NULL,
                     max_concurrency INT NOT NULL,
                     filters TEXT null,
