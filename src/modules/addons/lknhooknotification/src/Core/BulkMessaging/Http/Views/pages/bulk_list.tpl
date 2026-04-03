@@ -171,10 +171,14 @@
                                                 <td>{$bulk->platform->label()}</td>
                                                 <td style="white-space:nowrap;">{$bulk->startAt->format('d/m/Y H:i')}</td>
                                                 <td style="white-space:nowrap;">
-                                                    <a class="btn btn-default btn-xs" href="?module=lknhooknotification&page=bulks/{$bulk->id}">
-                                                        <i class="fas fa-eye"></i>
+                                                    {* Edit *}
+                                                    <a class="btn btn-default btn-xs"
+                                                       href="?module=lknhooknotification&page=bulks/{$bulk->id}"
+                                                       title="{lkn_hn_lang text='Edit'}">
+                                                        <i class="fas fa-edit"></i>
                                                     </a>
 
+                                                    {* Pause (active only) *}
                                                     {if $bulk->status->value === 'active'}
                                                         <a class="btn btn-warning btn-xs"
                                                            href="?module=lknhooknotification&page=bulk/list&pause-campaign=1&bulk-id={$bulk->id}"
@@ -182,6 +186,8 @@
                                                             <i class="fas fa-pause"></i>
                                                         </a>
                                                     {/if}
+
+                                                    {* Resume (paused only) *}
                                                     {if $bulk->status->value === 'paused'}
                                                         <a class="btn btn-success btn-xs"
                                                            href="?module=lknhooknotification&page=bulk/list&resume-campaign=1&bulk-id={$bulk->id}"
@@ -189,14 +195,18 @@
                                                             <i class="fas fa-play"></i>
                                                         </a>
                                                     {/if}
-                                                    {if $bulk->recurrenceType === 'once' && $bulk->status->value === 'in_progress' && "now"|date_format:"%Y-%m-%d %H:%M:%S" < $bulk->startAt->format('Y-m-d H:i:s')}
+
+                                                    {* Send now (active campaigns only) *}
+                                                    {if $bulk->status->value === 'active'}
                                                         <a class="btn btn-link btn-xs"
                                                            href="?module=lknhooknotification&page=bulk/list&send-now=1&bulk-id={$bulk->id}"
-                                                           title="{lkn_hn_lang text='Send now'}">
+                                                           title="{lkn_hn_lang text='Send now'}"
+                                                           onclick="return confirm('{lkn_hn_lang text='Send this campaign now?'}')">
                                                             <i class="fas fa-bolt"></i>
                                                         </a>
                                                     {/if}
 
+                                                    {* Duplicate *}
                                                     <form style="display:inline;" method="POST"
                                                           action="?module=lknhooknotification&page=bulk/duplicate">
                                                         <input type="hidden" name="bulk-id" value="{$bulk->id}">
@@ -207,12 +217,24 @@
                                                         </button>
                                                     </form>
 
-                                                    {if $bulk->isRecurring()}
-                                                        <a class="btn btn-link btn-xs"
-                                                           href="?module=lknhooknotification&page=bulks/{$bulk->id}/history"
-                                                           title="{lkn_hn_lang text='History'}">
-                                                            <i class="fas fa-history"></i>
-                                                        </a>
+                                                    {* History *}
+                                                    <a class="btn btn-link btn-xs"
+                                                       href="?module=lknhooknotification&page=bulks/{$bulk->id}/history"
+                                                       title="{lkn_hn_lang text='History'}">
+                                                        <i class="fas fa-history"></i>
+                                                    </a>
+
+                                                    {* Delete *}
+                                                    {if $bulk->status->value !== 'in_progress' || $bulk->progress == 0}
+                                                        <form style="display:inline;" method="POST"
+                                                              action="?module=lknhooknotification&page=bulk/delete">
+                                                            <input type="hidden" name="bulk-id" value="{$bulk->id}">
+                                                            <button type="submit" class="btn btn-danger btn-xs"
+                                                                    title="{lkn_hn_lang text='Delete'}"
+                                                                    onclick="return confirm('{lkn_hn_lang text='Permanently delete this campaign? This action cannot be undone.'}')">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
                                                     {/if}
                                                 </td>
                                             </tr>

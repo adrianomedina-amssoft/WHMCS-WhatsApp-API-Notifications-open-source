@@ -216,6 +216,21 @@ final class BulkRepository extends BaseRepository
     }
 
     /**
+     * Marks any in-progress run for a campaign as failed (used when campaign is aborted).
+     */
+    public function failOpenCampaignRuns(int $campaignId): void
+    {
+        $this->query
+            ->table('mod_lkn_hook_notification_campaign_runs')
+            ->where('campaign_id', $campaignId)
+            ->where('status', 'in_progress')
+            ->update([
+                'completed_at' => (new DateTime())->format('Y-m-d H:i:s'),
+                'status'       => 'failed',
+            ]);
+    }
+
+    /**
      * @return object[]
      */
     public function getCampaignRuns(int $campaignId): array
@@ -236,6 +251,58 @@ final class BulkRepository extends BaseRepository
         $this->query
             ->table('mod_lkn_hook_notification_notif_queue')
             ->where('bulk_id', $bulkId)
+            ->delete();
+    }
+
+    /**
+     * Updates all editable fields of a campaign (title, description, filters, template, recurrence, etc.).
+     */
+    public function updateBulkFull(
+        int $bulkId,
+        string $title,
+        string $description,
+        string $startAt,
+        int $maxConcurrency,
+        array $filters,
+        string $template,
+        ?string $platformPayload,
+        string $recurrenceType,
+        ?string $recurrenceConfig,
+        ?string $nextRunAt,
+        ?string $endAt,
+    ): int {
+        $data = [
+            'title'             => $title,
+            'description'       => $description,
+            'start_at'          => $startAt,
+            'max_concurrency'   => $maxConcurrency,
+            'filters'           => lkn_hn_safe_json_encode($filters),
+            'template'          => $template,
+            'platform_payload'  => $platformPayload,
+            'recurrence_type'   => $recurrenceType,
+            'recurrence_config' => $recurrenceConfig,
+            'next_run_at'       => $nextRunAt,
+            'end_at'            => $endAt,
+        ];
+
+        return $this->query
+            ->table('mod_lkn_hook_notification_bulks')
+            ->where('id', $bulkId)
+            ->update($data);
+    }
+
+    /**
+     * Permanently deletes a campaign, its queue entries, and its run history.
+     */
+    public function deleteBulk(int $bulkId): bool
+    {
+        // Clear queue first (may not have a DB-level CASCADE)
+        $this->clearQueueForBulk($bulkId);
+
+        // campaign_runs have ON DELETE CASCADE so they are removed automatically
+        return (bool) $this->query
+            ->table('mod_lkn_hook_notification_bulks')
+            ->where('id', $bulkId)
             ->delete();
     }
 }

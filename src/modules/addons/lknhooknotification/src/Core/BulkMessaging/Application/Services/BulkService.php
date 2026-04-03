@@ -52,6 +52,9 @@ final class BulkService
                 foreach ($inProgressBulkMessages as $message) {
                     $this->updateBulkMessageStatus($message->id, QueuedNotificationStatus::ABORTED);
                 }
+
+                // Mark any open campaign_run as failed
+                $this->bulkRepository->failOpenCampaignRuns($bulkId);
             }
         }
 
@@ -88,10 +91,14 @@ final class BulkService
      */
     public function advanceRecurringCampaign(Bulk $bulk): void
     {
+        // Use the last scheduled run time as the base so the original time-of-day is preserved
+        // (e.g., a daily campaign set for 09:00 always fires at 09:00, not at completion time).
+        $base = $bulk->nextRunAt ?? new DateTime();
+
         $nextRunAt = $this->scheduler->calculateNextRun(
             $bulk->recurrenceType,
             $bulk->recurrenceConfig ?? [],
-            new DateTime(),
+            $base,
             $bulk->endAt,
         );
 
@@ -292,19 +299,24 @@ final class BulkService
             ? lkn_hn_safe_json_encode($newBulkRequest->recurrenceConfig)
             : null;
 
+        // One-time campaigns with a future startAt are scheduled (ACTIVE + next_run_at).
+        // One-time campaigns with no date or a past date start immediately (IN_PROGRESS).
+        $hasFutureStart = $newBulkRequest->startAt && $newBulkRequest->startAt > new DateTime();
+
         // Determine persisted status:
         // - Paused: admin chose to create in paused state → PAUSED regardless of type
-        // - One-time + Active → IN_PROGRESS (picked up by dispatcher at start_at)
         // - Recurring + Active → ACTIVE (picked up by dispatcher at next_run_at)
+        // - One-time + future startAt → ACTIVE (scheduled; clients queued at dispatch time)
+        // - One-time + no future date → IN_PROGRESS (immediate; clients queued now)
         if ($newBulkRequest->status === BulkStatus::PAUSED) {
             $status = BulkStatus::PAUSED->value;
-        } elseif ($isRecurring) {
+        } elseif ($isRecurring || $hasFutureStart) {
             $status = BulkStatus::ACTIVE->value;
         } else {
             $status = BulkStatus::IN_PROGRESS->value;
         }
 
-        $nextRunAt = $isRecurring && $newBulkRequest->startAt
+        $nextRunAt = ($isRecurring || $hasFutureStart) && $newBulkRequest->startAt
             ? $newBulkRequest->startAt->format('Y-m-d H:i:s')
             : null;
 
@@ -329,12 +341,12 @@ final class BulkService
             return lkn_hn_result(code: 'unable-to-create-bulk');
         }
 
-        // Recurring campaigns: do NOT pre-queue clients — re-evaluate on each dispatch
-        if ($isRecurring) {
+        // Recurring or future-scheduled one-time: do NOT pre-queue — clients queued at dispatch time
+        if ($isRecurring || $hasFutureStart) {
             return lkn_hn_result(code: 'success', data: ['bulk_id' => $bulkId]);
         }
 
-        // One-time: queue clients now
+        // One-time (immediate start): queue clients now
         $clientIds = array_column($this->getClientsByFilter($newBulkRequest->filters), 'value');
 
         $result = $this->notificationQueueService->insertFromBulkToQueue($bulkId, $clientIds);
@@ -344,6 +356,71 @@ final class BulkService
         }
 
         return lkn_hn_result(code: 'success', data: ['bulk_id' => $bulkId]);
+    }
+
+    /**
+     * Updates all editable fields of an existing campaign.
+     * next_run_at is recalculated only when a new future startAt is provided; otherwise kept as-is.
+     */
+    public function updateCampaignFull(int $bulkId, NewBulkRequest $req, array $rawPost): Result
+    {
+        try {
+            $bulk = $this->getBulk($bulkId);
+
+            if (!$bulk) {
+                return lkn_hn_result('error', errors: ['message' => "Campaign not found: {$bulkId}"]);
+            }
+
+            $template        = null;
+            $platformPayload = null;
+
+            if ($req->platform === Platforms::WHATSAPP) {
+                $platformPayloadResult = $this->notificationService->handleWhatsAppPlatformPayloadForm($rawPost);
+
+                if (!$platformPayloadResult->data) {
+                    return lkn_hn_result('error', msg: lkn_hn_lang('Unable to parse Meta WhatsApp template.'));
+                }
+
+                $template        = $platformPayloadResult->data['template'];
+                $platformPayload = $platformPayloadResult->data['platformPayload'];
+            } else {
+                $template = $req->template;
+            }
+
+            $recurrenceConfig = $req->recurrenceConfig
+                ? lkn_hn_safe_json_encode($req->recurrenceConfig)
+                : null;
+
+            // Recalculate next_run_at only when admin provides a new future startAt.
+            // Otherwise preserve the existing value so active schedules are not disrupted.
+            $now = new DateTime();
+            if ($req->startAt && $req->startAt > $now) {
+                $nextRunAt = $req->startAt->format('Y-m-d H:i:s');
+            } else {
+                $nextRunAt = $bulk->nextRunAt ? $bulk->nextRunAt->format('Y-m-d H:i:s') : null;
+            }
+
+            $result = $this->bulkRepository->updateBulkFull(
+                bulkId:           $bulkId,
+                title:            $req->title ?? '',
+                description:      $req->descrip ?? '',
+                startAt:          $req->startAt ? $req->startAt->format('Y-m-d H:i:s') : ($bulk->startAt ? $bulk->startAt->format('Y-m-d H:i:s') : ''),
+                maxConcurrency:   $req->maxConcurrency ?? 25,
+                filters:          $req->filters ?? [],
+                template:         $template ?? '',
+                platformPayload:  $platformPayload ? lkn_hn_safe_json_encode($platformPayload) : null,
+                recurrenceType:   $req->recurrenceType,
+                recurrenceConfig: $recurrenceConfig,
+                nextRunAt:        $nextRunAt,
+                endAt:            $req->endAt ? $req->endAt->format('Y-m-d H:i:s') : null,
+            );
+
+            return $result !== false
+                ? lkn_hn_result('success')
+                : lkn_hn_result('error', errors: ['message' => 'Update failed']);
+        } catch (Throwable $th) {
+            return lkn_hn_result('error', errors: ['exception' => $th->getMessage()]);
+        }
     }
 
     /**
@@ -358,15 +435,14 @@ final class BulkService
                 return lkn_hn_result('error', errors: ['message' => "Campaign not found: {$id}"]);
             }
 
-            $isRecurring = $bulk->isRecurring();
-            $newStatus   = $isRecurring ? BulkStatus::ACTIVE->value : BulkStatus::IN_PROGRESS->value;
+            $duplicateStartAt = (new DateTime())->modify('+1 hour')->format('Y-m-d H:i:s');
 
             $newId = $this->bulkRepository->insertBulk(
                 title:            lkn_hn_lang('Copy of') . ' ' . $bulk->title,
-                status:           $newStatus,
+                status:           BulkStatus::ACTIVE->value,
                 description:      $bulk->description ?? '',
                 platform:         $bulk->platform->value,
-                startAt:          (new DateTime())->modify('+1 hour')->format('Y-m-d H:i:s'),
+                startAt:          $duplicateStartAt,
                 maxConcurrency:   $bulk->maxConcurrency,
                 filters:          $bulk->filters,
                 progress:         0.0,
@@ -374,7 +450,7 @@ final class BulkService
                 platformPayload:  $bulk->platformPayload ? lkn_hn_safe_json_encode($bulk->platformPayload) : null,
                 recurrenceType:   $bulk->recurrenceType,
                 recurrenceConfig: $bulk->recurrenceConfig ? lkn_hn_safe_json_encode($bulk->recurrenceConfig) : null,
-                nextRunAt:        $isRecurring ? (new DateTime())->modify('+1 hour')->format('Y-m-d H:i:s') : null,
+                nextRunAt:        $duplicateStartAt,
                 endAt:            $bulk->endAt ? $bulk->endAt->format('Y-m-d H:i:s') : null,
             );
 
@@ -488,6 +564,24 @@ final class BulkService
 
     public function sendNow(int $bulkId): bool
     {
+        $bulk = $this->getBulk($bulkId);
+
+        if (!$bulk) {
+            return false;
+        }
+
+        if ($bulk->isRecurring()) {
+            // Recurring: set next_run_at to 1 second ago so the cron's Phase 2 picks it up
+            // immediately. This keeps the full startRecurringRun() flow (filter re-evaluation).
+            return boolval(
+                $this->bulkRepository->updateBulk(
+                    $bulkId,
+                    nextRunAt: (new DateTime())->modify('-1 second')->format('Y-m-d H:i:s'),
+                )
+            );
+        }
+
+        // One-time: set IN_PROGRESS immediately so Phase 1 picks it up
         return boolval(
             $this->bulkRepository->updateBulk(
                 $bulkId,
@@ -495,6 +589,46 @@ final class BulkService
                 startAt: (new DateTime())->format(DateTime::ATOM)
             )
         );
+    }
+
+    /**
+     * Permanently deletes a campaign and all its related data.
+     */
+    public function deleteCampaign(int $bulkId): Result
+    {
+        $bulk = $this->getBulk($bulkId);
+
+        if (!$bulk) {
+            return lkn_hn_result('error', errors: ['message' => lkn_hn_lang('Campaign not found.')]);
+        }
+
+        $deleted = $this->bulkRepository->deleteBulk($bulkId);
+
+        return $deleted
+            ? lkn_hn_result('success')
+            : lkn_hn_result('error', errors: ['message' => lkn_hn_lang('Failed to delete campaign.')]);
+    }
+
+    /**
+     * Updates next_run_at for an ACTIVE campaign (calendar reschedule).
+     */
+    public function rescheduleCampaign(int $bulkId, DateTime $newRunAt): Result
+    {
+        $bulk = $this->getBulk($bulkId);
+
+        if (!$bulk) {
+            return lkn_hn_result('error', errors: ['message' => lkn_hn_lang('Campaign not found.')]);
+        }
+
+        if ($bulk->status !== BulkStatus::ACTIVE) {
+            return lkn_hn_result('error', errors: ['message' => lkn_hn_lang('Only active campaigns can be rescheduled.')]);
+        }
+
+        $updated = $this->bulkRepository->updateBulk($bulkId, nextRunAt: $newRunAt->format('Y-m-d H:i:s'));
+
+        return $updated
+            ? lkn_hn_result('success')
+            : lkn_hn_result('error', errors: ['message' => lkn_hn_lang('Failed to reschedule campaign.')]);
     }
 
     /**

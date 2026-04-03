@@ -22,13 +22,6 @@
             padding: 50px;
         }
 
-        {if $page_params.mode === 'edit'}
-            #lkn-hn-msg-tpl-select-cont select {
-                pointer-events: none;
-                background-color: #cdcdcd38;
-            }
-
-        {/if}
     </style>
 
     <form
@@ -187,30 +180,10 @@
                                     id="date-to-send"
                                     name="date-to-send"
                                     required
-                                    {if $page_params.mode === 'edit'}disabled{/if}
                                     {if $page_params.state->startAt}
                                         value="{$page_params.state->startAt->format('Y-m-d\TH:i')}"
                                     {/if}
                                 >
-
-                                <script>
-                                    document.addEventListener('DOMContentLoaded', () => {
-                                        const input = document.getElementById('date-to-send');
-                                        const now = new Date();
-
-                                        const pad = num => String(num).padStart(2, '0');
-                                        const localDatetime = [
-                                            now.getFullYear(),
-                                            pad(now.getMonth() + 1),
-                                            pad(now.getDate())
-                                        ].join('-') + 'T' + [
-                                            pad(now.getHours()),
-                                            pad(now.getMinutes() + 5)
-                                        ].join(':');
-
-                                        input.min = localDatetime;
-                                    });
-                                </script>
 
                             </div>
                         </div>
@@ -234,7 +207,6 @@
                                     name="title"
                                     required
                                     value="{$page_params.state->title}"
-                                    {if $page_params.mode === 'edit'}disabled{/if}
                                 >
                             </div>
                         </div>
@@ -256,7 +228,6 @@
                                     name="description"
                                     required
                                     value="{$page_params.state->descrip}"
-                                    {if $page_params.mode === 'edit'}disabled{/if}
                                 >
                             </div>
                         </div>
@@ -305,7 +276,6 @@
                                     name="max-concurrency"
                                     required
                                     value="{if $page_params.state->maxConcurrency}{$page_params.state->maxConcurrency}{else}25{/if}"
-                                    {if $page_params.mode === 'edit'}disabled{/if}
                                 >
                             </div>
                         </div>
@@ -357,7 +327,6 @@
                                     id="client-status"
                                     name="client-status[]"
                                     multiple
-                                    {if $page_params.mode === 'edit'}disabled{/if}
                                 >
                                     {foreach from=$page_params.field_options.whmcs_client_statuses item=$status}
                                         <option
@@ -388,7 +357,6 @@
                                     id="client-locale"
                                     name="client-locale[]"
                                     multiple
-                                    {if $page_params.mode === 'edit'}disabled{/if}
                                 >
                                     {* INÍCIO DA ALTERAÇÃO (Agora com o || empty) *}
                                     <option 
@@ -429,7 +397,6 @@
                                     id="client-country"
                                     name="client-country[]"
                                     multiple
-                                    {if $page_params.mode === 'edit'}disabled{/if}
                                 >
                                     {foreach from=$page_params.field_options['whmcs_client_countries'] item=$country}
                                         <option
@@ -473,7 +440,6 @@
                                     id="services"
                                     name="services[]"
                                     multiple
-                                    {if $page_params.mode === 'edit'}disabled{/if}
                                 >
                                     {foreach from=$page_params.field_options['whmcs_products'] item=$product}
                                         <option
@@ -504,7 +470,6 @@
                                     id="service-status"
                                     name="service-status[]"
                                     multiple
-                                    {if $page_params.mode === 'edit'}disabled{/if}
                                 >
                                     {foreach from=$page_params.field_options['whmcs_client_product_status'] item=$productStatus}
                                         <option
@@ -535,7 +500,6 @@
                                         id="client-groups"
                                         name="client-groups[]"
                                         multiple
-                                        {if $page_params.mode === 'edit'}disabled{/if}
                                     >
                                         {foreach from=$page_params.field_options['client_groups'] item=$group}
                                             <option
@@ -837,8 +801,8 @@
             {/if}
 
 
-            {* ── RECURRENCE PANEL (create only) ───────────────────────────── *}
-            {if $page_params.mode !== 'edit'}
+            {* ── RECURRENCE PANEL ──────────────────────────────────────────── *}
+            {if true}
                 <div class="panel panel-default">
                     <div class="panel-heading" role="tab" id="headingRecurrence">
                         <h4 class="panel-title">
@@ -875,17 +839,20 @@
                                 <label class="col-sm-6 control-label">{lkn_hn_lang text="Repeat every (days)"}</label>
                                 <div class="col-sm-6">
                                     <input type="number" min="1" max="365" class="form-control"
-                                        name="recurrence-interval" id="recurrence-interval" value="1">
+                                        name="recurrence-interval" id="recurrence-interval"
+                                        value="{if !empty($page_params.state->recurrenceConfig['interval'])}{$page_params.state->recurrenceConfig['interval']}{elseif !empty($page_params.state->recurrenceConfig['interval_days'])}{$page_params.state->recurrenceConfig['interval_days']}{else}1{/if}">
                                 </div>
                             </div>
 
-                            {* WEEKLY: days of week + interval *}
+                            {* WEEKLY: days of week *}
                             <div class="form-group lkn-rec-weekly" style="display:none;">
                                 <label class="col-sm-6 control-label">{lkn_hn_lang text="Days of week"}</label>
                                 <div class="col-sm-6">
+                                    {assign var="storedDaysOfWeek" value=$page_params.state->recurrenceConfig['days_of_week']|default:[]}
                                     {foreach from=[0,1,2,3,4,5,6] item=$dow}
                                         <label class="checkbox-inline">
-                                            <input type="checkbox" name="recurrence-days-of-week[]" value="{$dow}">
+                                            <input type="checkbox" name="recurrence-days-of-week[]" value="{$dow}"
+                                                {if in_array($dow, $storedDaysOfWeek)}checked{/if}>
                                             {if $dow === 0}{lkn_hn_lang text="Sun"}
                                             {elseif $dow === 1}{lkn_hn_lang text="Mon"}
                                             {elseif $dow === 2}{lkn_hn_lang text="Tue"}
@@ -898,17 +865,44 @@
                                 </div>
                             </div>
 
+                            {* WEEKLY: every X weeks *}
+                            <div class="form-group lkn-rec-weekly" style="display:none;">
+                                <label class="col-sm-6 control-label">{lkn_hn_lang text="Repeat every (weeks)"}</label>
+                                <div class="col-sm-6">
+                                    <input type="number" min="1" max="52" class="form-control"
+                                        name="recurrence-week-interval" id="recurrence-week-interval"
+                                        value="{if !empty($page_params.state->recurrenceConfig['interval'])}{$page_params.state->recurrenceConfig['interval']}{else}1{/if}">
+                                </div>
+                            </div>
+
                             {* MONTHLY: day of month *}
                             <div class="form-group lkn-rec-monthly" style="display:none;">
                                 <label class="col-sm-6 control-label">{lkn_hn_lang text="Day of month"}</label>
                                 <div class="col-sm-6">
+                                    {assign var="storedDayOfMonth" value=$page_params.state->recurrenceConfig['day_of_month']|default:''}
                                     <select class="form-control" name="recurrence-day-of-month">
                                         {foreach from=range(1,28) item=$d}
-                                            <option value="{$d}">{$d}</option>
+                                            <option value="{$d}"
+                                                {if $storedDayOfMonth == $d}selected{/if}
+                                            >{$d}</option>
                                         {/foreach}
-                                        <option value="first_business">{lkn_hn_lang text="First business day"}</option>
-                                        <option value="last_business">{lkn_hn_lang text="Last business day"}</option>
+                                        <option value="first_business"
+                                            {if $storedDayOfMonth === 'first_business'}selected{/if}
+                                        >{lkn_hn_lang text="First business day"}</option>
+                                        <option value="last_business"
+                                            {if $storedDayOfMonth === 'last_business'}selected{/if}
+                                        >{lkn_hn_lang text="Last business day"}</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            {* MONTHLY: every X months *}
+                            <div class="form-group lkn-rec-monthly" style="display:none;">
+                                <label class="col-sm-6 control-label">{lkn_hn_lang text="Repeat every (months)"}</label>
+                                <div class="col-sm-6">
+                                    <input type="number" min="1" max="12" class="form-control"
+                                        name="recurrence-month-interval" id="recurrence-month-interval"
+                                        value="{if !empty($page_params.state->recurrenceConfig['month_interval'])}{$page_params.state->recurrenceConfig['month_interval']}{else}1{/if}">
                                 </div>
                             </div>
 
@@ -922,16 +916,28 @@
                                 </div>
                             </div>
 
-                            {* Preview next dates *}
+                            {* Preview schedule button (recurring types only) *}
+                            <div class="form-group lkn-rec-daily lkn-rec-weekly lkn-rec-monthly lkn-rec-custom" style="display:none;">
+                                <div class="col-sm-offset-6 col-sm-6">
+                                    <button type="submit" name="preview-schedule" value="1" class="btn btn-default">
+                                        <i class="far fa-calendar-check"></i>
+                                        {lkn_hn_lang text="Preview Schedule"}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {* Next 5 scheduled dates *}
                             {if !empty($page_params.preview_dates)}
                                 <div class="form-group">
                                     <div class="col-sm-12">
-                                        <strong>{lkn_hn_lang text="Next 5 scheduled dates"}:</strong>
-                                        <ul style="margin-top:8px;">
-                                            {foreach from=$page_params.preview_dates item=$pd}
-                                                <li>{$pd->format('d/m/Y H:i')}</li>
-                                            {/foreach}
-                                        </ul>
+                                        <div class="alert alert-info" style="margin-top:8px;">
+                                            <strong><i class="far fa-calendar-alt"></i> {lkn_hn_lang text="Next 5 scheduled dates"}:</strong>
+                                            <ol style="margin-top:6px; margin-bottom:0; padding-left:20px;">
+                                                {foreach from=$page_params.preview_dates item=$pd}
+                                                    <li>{$pd->format('d/m/Y H:i')}</li>
+                                                {/foreach}
+                                            </ol>
+                                        </div>
                                     </div>
                                 </div>
                             {/if}
@@ -941,8 +947,8 @@
                 </div>
             {/if}
 
-            {* Campaign runs history (edit mode, recurring only) *}
-            {if $page_params.mode === 'edit' && $page_params.bulk->isRecurring() && !empty($page_params.campaign_runs)}
+            {* Campaign runs history (edit mode, any campaign with runs) *}
+            {if $page_params.mode === 'edit' && !empty($page_params.campaign_runs)}
                 <div class="panel panel-default">
                     <div class="panel-heading" role="tab" id="headingRuns">
                         <h4 class="panel-title">
@@ -976,6 +982,8 @@
                                                     <span class="label label-success">{lkn_hn_lang text="Completed"}</span>
                                                 {elseif $run->status === 'in_progress'}
                                                     <span class="label label-info">{lkn_hn_lang text="In progress"}</span>
+                                                {elseif $run->status === 'failed'}
+                                                    <span class="label label-danger">{lkn_hn_lang text="Failed"}</span>
                                                 {else}
                                                     <span class="label label-default">{$run->status}</span>
                                                 {/if}
@@ -989,9 +997,18 @@
                 </div>
             {/if}
 
-            {if $page_params.mode !== 'edit'}
-                <div class="form-group" style="margin-top: 60px;">
-                    <div class="col-sm-12">
+            <div class="form-group" style="margin-top: 60px;">
+                <div class="col-sm-12">
+                    {if $page_params.mode === 'edit'}
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-block"
+                            style="max-width: 160px; margin: 0 auto 0;"
+                            name="save-bulk"
+                        >
+                            {lkn_hn_lang text="Save Campaign"}
+                        </button>
+                    {else}
                         <button
                             type="submit"
                             class="btn btn-primary btn-block"
@@ -1001,9 +1018,9 @@
                         >
                             {lkn_hn_lang text="Create Campaign"}
                         </button>
-                    </div>
+                    {/if}
                 </div>
-            {/if}
+            </div>
 
             <script type="text/javascript">
                 function lknHnToggleRecurrenceFields(type) {

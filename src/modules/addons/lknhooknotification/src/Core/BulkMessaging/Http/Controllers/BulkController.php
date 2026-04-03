@@ -127,6 +127,7 @@ final class BulkController extends BaseController
         if (
             isset($request['get-matched-clients'])
             || isset($request['create-bulk'])
+            || isset($request['preview-schedule'])
             || !empty($request['not-sending-clients'])
         ) {
             $clientOptions = $this->bulkService->getClientsByFilter(
@@ -215,6 +216,38 @@ final class BulkController extends BaseController
     {
         $bulk = $this->bulkService->getBulk($bulkId);
 
+        // ── Save edits ────────────────────────────────────────────────────────
+        if (isset($request['save-bulk'])) {
+            $recurrenceType   = $request['recurrence-type'] ?? 'once';
+            $endAt            = !empty($request['end-at']) ? new DateTime($request['end-at']) : null;
+            $recurrenceConfig = NewBulkRequest::parseRecurrenceConfigFromRequest($request);
+
+            $updateRequest = new NewBulkRequest(
+                status:           $bulk->status,
+                title:            $request['title'] ?? $bulk->title,
+                descrip:          $request['description'] ?? $bulk->description,
+                platform:         $bulk->platform,                          // platform cannot change
+                startAt:          !empty($request['date-to-send']) ? new DateTime($request['date-to-send']) : $bulk->startAt,
+                maxConcurrency:   (int) ($request['max-concurrency'] ?? $bulk->maxConcurrency),
+                filters:          NewBulkRequest::parseFiltersFromRequest($request),
+                template:         $request['template'] ?? $bulk->template,
+                recurrenceType:   $recurrenceType,
+                recurrenceConfig: $recurrenceConfig,
+                endAt:            $endAt,
+            );
+
+            $result = $this->bulkService->updateCampaignFull($bulkId, $updateRequest, $request);
+
+            $this->view->alert(
+                $result->code === 'success' ? 'success' : 'danger',
+                $result->code === 'success'
+                    ? lkn_hn_lang('Campaign updated successfully.')
+                    : ($result->msg ?? $result->errors['message'] ?? $result->errors['exception'] ?? lkn_hn_lang('Could not update campaign.'))
+            );
+
+            $bulk = $this->bulkService->getBulk($bulkId); // refresh after save
+        }
+
         if (
             isset($request['bulk-status'])
             && $bulk->status->value !== $request['bulk-status']
@@ -247,18 +280,22 @@ final class BulkController extends BaseController
 
         $bulk = $this->bulkService->getBulk($bulkId);
 
+        // When form fields are submitted (save, preview-schedule), build state from request.
+        // Otherwise, build from stored bulk values.
+        $hasFormPost = isset($request['save-bulk']) || isset($request['preview-schedule']);
+
         $newBulkRequest = new NewBulkRequest(
             status:           $bulk->status,
-            title:            $bulk->title,
-            descrip:          $bulk->description,
+            title:            $hasFormPost ? ($request['title'] ?? $bulk->title) : $bulk->title,
+            descrip:          $hasFormPost ? ($request['description'] ?? $bulk->description) : $bulk->description,
             platform:         $bulk->platform,
-            startAt:          $bulk->startAt,
-            maxConcurrency:   $bulk->maxConcurrency,
-            filters:          $bulk->filters,
-            template:         $bulk->template,
-            recurrenceType:   $bulk->recurrenceType,
-            recurrenceConfig: $bulk->recurrenceConfig,
-            endAt:            $bulk->endAt,
+            startAt:          $hasFormPost && !empty($request['date-to-send']) ? new DateTime($request['date-to-send']) : $bulk->startAt,
+            maxConcurrency:   $hasFormPost ? (int) ($request['max-concurrency'] ?? $bulk->maxConcurrency) : $bulk->maxConcurrency,
+            filters:          $hasFormPost ? NewBulkRequest::parseFiltersFromRequest($request) : $bulk->filters,
+            template:         $hasFormPost ? ($request['template'] ?? $bulk->template) : $bulk->template,
+            recurrenceType:   $hasFormPost ? ($request['recurrence-type'] ?? 'once') : $bulk->recurrenceType,
+            recurrenceConfig: $hasFormPost ? NewBulkRequest::parseRecurrenceConfigFromRequest($request) : $bulk->recurrenceConfig,
+            endAt:            $hasFormPost ? (!empty($request['end-at']) ? new DateTime($request['end-at']) : null) : $bulk->endAt,
         );
 
         $clientOptions         = $this->bulkService->getClientsByFilter($newBulkRequest->filters);
@@ -298,7 +335,9 @@ final class BulkController extends BaseController
             ],
             'state'                  => $newBulkRequest,
             'bulk'                   => $bulk,
-            'preview_dates'          => [],
+            'preview_dates'          => (isset($request['preview-schedule']) && $newBulkRequest->recurrenceType !== 'once' && $newBulkRequest->startAt && !empty($newBulkRequest->recurrenceConfig))
+                ? $this->bulkService->previewNextRuns(5, $newBulkRequest->recurrenceType, $newBulkRequest->recurrenceConfig, $newBulkRequest->startAt, $newBulkRequest->endAt)
+                : [],
             'bulk_notifications_list' => $bulkNotificationsList,
             'campaign_runs'          => $campaignRuns,
             'editing_notification'   => new BulkNotification(),
@@ -329,6 +368,51 @@ final class BulkController extends BaseController
         $this->view->alert('danger', $result->errors['message'] ?? $result->errors['exception'] ?? lkn_hn_lang('Unable to duplicate campaign.'));
 
         $this->view->view('pages/bulk_list', ['bulks' => $this->bulkService->getBulks()]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Delete
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function handleDeleteCampaign(array $request): void
+    {
+        $bulkId = (int) ($request['bulk-id'] ?? 0);
+        $result = $this->bulkService->deleteCampaign($bulkId);
+
+        $this->view->alert(
+            $result->code === 'success' ? 'success' : 'danger',
+            $result->code === 'success'
+                ? lkn_hn_lang('Campaign #[1] deleted.', [$bulkId])
+                : ($result->errors['message'] ?? lkn_hn_lang('Could not delete campaign.'))
+        );
+
+        $bulks    = $this->bulkService->getBulks();
+        $calendar = $this->bulkService->getCalendar(7);
+        $this->view->view('pages/bulk_list', ['bulks' => $bulks, 'calendar' => $calendar]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Reschedule (from calendar)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function handleRescheduleCampaign(array $request): void
+    {
+        $bulkId   = (int) ($request['bulk-id'] ?? 0);
+        $newRunAt = $request['new-run-at'] ?? '';
+
+        if ($bulkId && !empty($newRunAt)) {
+            $result = $this->bulkService->rescheduleCampaign($bulkId, new DateTime($newRunAt));
+
+            $this->view->alert(
+                $result->code === 'success' ? 'success' : 'danger',
+                $result->code === 'success'
+                    ? lkn_hn_lang('Campaign #[1] rescheduled to [2].', [$bulkId, (new DateTime($newRunAt))->format('d/m/Y H:i')])
+                    : ($result->errors['message'] ?? lkn_hn_lang('Could not reschedule campaign.'))
+            );
+        }
+
+        $calendar = $this->bulkService->getCalendar(30);
+        $this->view->view('pages/campaign_calendar', ['calendar' => $calendar]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
