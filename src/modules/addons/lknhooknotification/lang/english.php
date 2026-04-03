@@ -179,6 +179,7 @@ $_ADDONLANG['Leave empty for no end date.']   = 'Leave empty for no end date.';
 $_ADDONLANG['Next 5 scheduled dates']         = 'Next 5 scheduled dates';
 $_ADDONLANG['Next run']                       = 'Next run';
 $_ADDONLANG['Paused']                         = 'Paused';
+$_ADDONLANG['Active campaigns run on schedule. Paused campaigns can be resumed later.'] = 'Active campaigns run on schedule. Paused campaigns can be resumed later.';
 $_ADDONLANG['Pause']                          = 'Pause';
 $_ADDONLANG['Resume']                         = 'Resume';
 $_ADDONLANG['Duplicate']                      = 'Duplicate';

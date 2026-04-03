@@ -94,18 +94,22 @@ final class BulkController extends BaseController
 
     public function viewNewBulkMessage(array $request): void
     {
-        $title          = $request['title'] ?? '';
-        $platform       = $request['platform'] ?? '';
-        $dateToSend     = $request['date-to-send'] ?? '';
-        $description    = $request['description'] ?? '';
-        $template       = $request['template'] ?? '';
-        $maxConcurrency = (int) ($request['max-concurrency'] ?? 25);
-        $recurrenceType = $request['recurrence-type'] ?? 'once';
-        $endAt          = !empty($request['end-at']) ? new DateTime($request['end-at']) : null;
+        $title            = $request['title'] ?? '';
+        $platform         = $request['platform'] ?? '';
+        $dateToSend       = $request['date-to-send'] ?? '';
+        $description      = $request['description'] ?? '';
+        $template         = $request['template'] ?? '';
+        $maxConcurrency   = (int) ($request['max-concurrency'] ?? 25);
+        $recurrenceType   = $request['recurrence-type'] ?? 'once';
+        $endAt            = !empty($request['end-at']) ? new DateTime($request['end-at']) : null;
         $recurrenceConfig = NewBulkRequest::parseRecurrenceConfigFromRequest($request);
 
+        // Status chosen by admin: active (default) or paused
+        $initialStatusRaw = $request['initial-status'] ?? 'active';
+        $initialStatus    = $initialStatusRaw === 'paused' ? BulkStatus::PAUSED : BulkStatus::ACTIVE;
+
         $newBulkRequest = new NewBulkRequest(
-            status:           BulkStatus::IN_PROGRESS,
+            status:           $initialStatus,
             title:            $title,
             descrip:          $description,
             platform:         Platforms::tryFrom($platform),

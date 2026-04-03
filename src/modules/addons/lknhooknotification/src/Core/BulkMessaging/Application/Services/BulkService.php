@@ -287,14 +287,23 @@ final class BulkService
             $template = $newBulkRequest->template;
         }
 
-        $isRecurring     = $newBulkRequest->recurrenceType !== 'once';
+        $isRecurring      = $newBulkRequest->recurrenceType !== 'once';
         $recurrenceConfig = $newBulkRequest->recurrenceConfig
             ? lkn_hn_safe_json_encode($newBulkRequest->recurrenceConfig)
             : null;
 
-        // For recurring campaigns the initial status is ACTIVE; they don't run immediately.
-        // next_run_at is set to startAt so the dispatcher picks it up on the right date.
-        $status    = $isRecurring ? BulkStatus::ACTIVE->value : BulkStatus::IN_PROGRESS->value;
+        // Determine persisted status:
+        // - Paused: admin chose to create in paused state → PAUSED regardless of type
+        // - One-time + Active → IN_PROGRESS (picked up by dispatcher at start_at)
+        // - Recurring + Active → ACTIVE (picked up by dispatcher at next_run_at)
+        if ($newBulkRequest->status === BulkStatus::PAUSED) {
+            $status = BulkStatus::PAUSED->value;
+        } elseif ($isRecurring) {
+            $status = BulkStatus::ACTIVE->value;
+        } else {
+            $status = BulkStatus::IN_PROGRESS->value;
+        }
+
         $nextRunAt = $isRecurring && $newBulkRequest->startAt
             ? $newBulkRequest->startAt->format('Y-m-d H:i:s')
             : null;

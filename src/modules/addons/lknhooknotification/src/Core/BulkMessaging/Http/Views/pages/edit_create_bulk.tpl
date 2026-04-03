@@ -261,6 +261,26 @@
                             </div>
                         </div>
 
+                        {* STATUS (create mode only) *}
+                        {if $page_params.mode !== 'edit'}
+                            <div class="form-group">
+                                <label for="initial-status" class="col-sm-6 control-label">
+                                    {lkn_hn_lang text="Status"}
+                                </label>
+                                <div class="col-sm-6">
+                                    <select class="form-control" id="initial-status" name="initial-status">
+                                        <option value="active" {if $page_params.state->status && $page_params.state->status->value === 'active'}selected{/if}>
+                                            {lkn_hn_lang text="Active"}
+                                        </option>
+                                        <option value="paused" {if $page_params.state->status && $page_params.state->status->value === 'paused'}selected{/if}>
+                                            {lkn_hn_lang text="Paused"}
+                                        </option>
+                                    </select>
+                                    <span class="help-block">{lkn_hn_lang text="Active campaigns run on schedule. Paused campaigns can be resumed later."}</span>
+                                </div>
+                            </div>
+                        {/if}
+
                         {* MAX SIMULTANEUS SENDING *}
 
                         <div class="form-group">
@@ -284,11 +304,7 @@
                                     id="max-concurrency"
                                     name="max-concurrency"
                                     required
-                                    {if condition}
-                                        value="{$page_params.state->maxConcurrency}"
-                                    {else}
-                                        value="0"
-                                    {/if}
+                                    value="{if $page_params.state->maxConcurrency}{$page_params.state->maxConcurrency}{else}25{/if}"
                                     {if $page_params.mode === 'edit'}disabled{/if}
                                 >
                             </div>
