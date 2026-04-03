@@ -40,6 +40,12 @@ final class CampaignScheduler
             default   => null,
         };
 
+        // Apply the configured dispatch time (HH:MM) if present
+        if ($next && !empty($config['time'])) {
+            $parts = explode(':', $config['time']);
+            $next->setTime((int) ($parts[0] ?? 0), (int) ($parts[1] ?? 0), 0);
+        }
+
         if ($next && $endAt && $next > $endAt) {
             return null;
         }
@@ -90,9 +96,11 @@ final class CampaignScheduler
         $end      = (clone $now)->modify("+{$days} days");
 
         foreach ($campaigns as $bulk) {
-            if (!$bulk->isRecurring() && in_array($bulk->status, [
+            // Skip campaigns that will not dispatch: completed, aborted, or paused
+            if (in_array($bulk->status, [
                 \Lkn\HookNotification\Core\BulkMessaging\Domain\BulkStatus::COMPLETED,
                 \Lkn\HookNotification\Core\BulkMessaging\Domain\BulkStatus::ABORTED,
+                \Lkn\HookNotification\Core\BulkMessaging\Domain\BulkStatus::PAUSED,
             ], true)) {
                 continue;
             }
@@ -106,10 +114,12 @@ final class CampaignScheduler
                 if ($bulk->startAt >= $now && $bulk->startAt <= $end) {
                     $dateKey = $bulk->startAt->format('Y-m-d');
                     $calendar[$dateKey][] = [
-                        'id'           => $bulk->id,
-                        'title'        => $bulk->title,
-                        'time'         => $bulk->startAt->format('H:i'),
-                        'has_conflict' => false,
+                        'id'                  => $bulk->id,
+                        'title'               => $bulk->title,
+                        'time'                => $bulk->startAt->format('H:i'),
+                        'has_conflict'        => false,
+                        'suggested_next_run'  => null,
+                        'suggested_display'   => null,
                     ];
                 }
                 continue;
@@ -129,10 +139,12 @@ final class CampaignScheduler
                 if ($next >= $now) {
                     $dateKey = $next->format('Y-m-d');
                     $calendar[$dateKey][] = [
-                        'id'           => $bulk->id,
-                        'title'        => $bulk->title,
-                        'time'         => $next->format('H:i'),
-                        'has_conflict' => false,
+                        'id'                  => $bulk->id,
+                        'title'               => $bulk->title,
+                        'time'                => $next->format('H:i'),
+                        'has_conflict'        => false,
+                        'suggested_next_run'  => null,
+                        'suggested_display'   => null,
                     ];
                 }
 
@@ -141,11 +153,22 @@ final class CampaignScheduler
             }
         }
 
-        // Mark conflicts (same date with ≥2 entries)
+        // Mark conflicts (same date with ≥2 entries) and suggest alternative times
         foreach ($calendar as $date => &$entries) {
             if (count($entries) >= 2) {
-                foreach ($entries as &$entry) {
+                // Sort by time ASC, then ID ASC — earliest/lowest-ID campaign keeps its slot
+                usort($entries, fn($a, $b) => strcmp($a['time'], $b['time']) ?: $a['id'] <=> $b['id']);
+
+                foreach ($entries as $idx => &$entry) {
                     $entry['has_conflict'] = true;
+
+                    if ($idx > 0) {
+                        // Suggest next day at the same time to resolve the conflict
+                        $suggested = new DateTime($date . ' ' . $entry['time']);
+                        $suggested->modify('+1 day');
+                        $entry['suggested_next_run'] = $suggested->format('Y-m-d\TH:i');
+                        $entry['suggested_display']  = $suggested->format('d/m/Y H:i');
+                    }
                 }
             }
         }
@@ -182,13 +205,14 @@ final class CampaignScheduler
         $candidate = clone $from;
         $candidate->modify('+1 day');
 
+        // Search up to interval*7 + 7 extra days to guarantee finding a match
         for ($i = 0; $i < 7 * $interval + 7; $i++) {
             $weekday = (int) $candidate->format('w'); // 0=Sun, 6=Sat
 
             if (in_array($weekday, $daysOfWeek, true)) {
-                // Check week interval: compare ISO week number relative to $from
-                $weekDiff = (int) $candidate->format('W') - (int) $from->format('W');
-                // Simple modulo check; handles year boundaries approximately
+                // Count whole weeks elapsed from $from to $candidate (year-boundary safe)
+                $weekDiff = (int) floor($from->diff($candidate)->days / 7);
+
                 if ($interval <= 1 || ($weekDiff % $interval) === 0) {
                     return $candidate;
                 }
@@ -202,61 +226,55 @@ final class CampaignScheduler
 
     private function nextMonthly(array $config, DateTime $from): ?DateTime
     {
-        $daySpec = $config['day_of_month'] ?? 1;
+        $daySpec       = $config['day_of_month'] ?? 1;
+        $monthInterval = max(1, (int) ($config['month_interval'] ?? 1));
 
         if ($daySpec === 'first_business') {
-            return $this->nextMonthlyFirstBusiness($from);
+            return $this->nextMonthlyFirstBusiness($from, $monthInterval);
         }
 
         if ($daySpec === 'last_business') {
-            return $this->nextMonthlyLastBusiness($from);
+            return $this->nextMonthlyLastBusiness($from, $monthInterval);
         }
 
         $targetDay = max(1, min(28, (int) $daySpec));
 
-        // Try same month first
-        $candidate = new DateTime($from->format('Y-m') . '-' . str_pad((string)$targetDay, 2, '0', STR_PAD_LEFT)
-            . ' ' . $from->format('H:i:s'));
-
-        if ($candidate > $from) {
-            return $candidate;
-        }
-
-        // Move to next month
-        $candidate->modify('+1 month');
-        $candidate->setDate((int)$candidate->format('Y'), (int)$candidate->format('m'), $targetDay);
+        // Advance $monthInterval months from $from (which is always the previous next_run_at,
+        // so adding N months gives the correct next occurrence while preserving time-of-day).
+        $candidate = clone $from;
+        $candidate->modify("+{$monthInterval} months");
+        $candidate->setDate((int) $candidate->format('Y'), (int) $candidate->format('m'), $targetDay);
 
         return $candidate;
     }
 
-    private function nextMonthlyFirstBusiness(DateTime $from): DateTime
+    private function nextMonthlyFirstBusiness(DateTime $from, int $monthInterval = 1): DateTime
     {
-        $candidate = new DateTime($from->format('Y-m') . '-01 ' . $from->format('H:i:s'));
-
-        if ($candidate <= $from) {
-            $candidate->modify('+1 month');
-            $candidate->setDate((int)$candidate->format('Y'), (int)$candidate->format('m'), 1);
-        }
+        $candidate = clone $from;
+        $candidate->modify("+{$monthInterval} months");
+        $candidate->setDate((int) $candidate->format('Y'), (int) $candidate->format('m'), 1);
 
         // Advance until Monday–Friday
-        while ((int)$candidate->format('N') > 5) {
+        while ((int) $candidate->format('N') > 5) {
             $candidate->modify('+1 day');
         }
 
         return $candidate;
     }
 
-    private function nextMonthlyLastBusiness(DateTime $from): DateTime
+    private function nextMonthlyLastBusiness(DateTime $from, int $monthInterval = 1): DateTime
     {
-        $candidate = new DateTime($from->format('Y-m-t') . ' ' . $from->format('H:i:s')); // last day of month
-
-        if ($candidate <= $from) {
-            $candidate->modify('+1 month');
-            $candidate->setDate((int)$candidate->format('Y'), (int)$candidate->format('m'), (int)$candidate->format('t'));
-        }
+        $candidate = clone $from;
+        $candidate->modify("+{$monthInterval} months");
+        // Set to last day of the target month
+        $candidate->setDate(
+            (int) $candidate->format('Y'),
+            (int) $candidate->format('m'),
+            (int) $candidate->format('t')
+        );
 
         // Move back until Monday–Friday
-        while ((int)$candidate->format('N') > 5) {
+        while ((int) $candidate->format('N') > 5) {
             $candidate->modify('-1 day');
         }
 

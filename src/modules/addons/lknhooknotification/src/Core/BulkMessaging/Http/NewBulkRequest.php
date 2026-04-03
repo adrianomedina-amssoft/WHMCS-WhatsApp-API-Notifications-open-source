@@ -64,14 +64,21 @@ final class NewBulkRequest
     {
         $type = $request['recurrence-type'] ?? 'once';
 
+        $time = !empty($request['recurrence-time']) ? $request['recurrence-time'] : null;
+
         return match ($type) {
-            'daily'   => ['interval' => (int) ($request['recurrence-interval'] ?? 1)],
-            'weekly'  => [
+            'daily'   => array_filter(['interval' => (int) ($request['recurrence-interval'] ?? 1), 'time' => $time], fn($v) => $v !== null),
+            'weekly'  => array_filter([
                 'days_of_week' => array_map('intval', (array) ($request['recurrence-days-of-week'] ?? [1])),
-                'interval'     => (int) ($request['recurrence-interval'] ?? 1),
-            ],
-            'monthly' => ['day_of_month' => $request['recurrence-day-of-month'] ?? 1],
-            'custom'  => ['interval_days' => (int) ($request['recurrence-interval-days'] ?? 1)],
+                'interval'     => (int) ($request['recurrence-week-interval'] ?? 1),
+                'time'         => $time,
+            ], fn($v) => $v !== null),
+            'monthly' => array_filter([
+                'day_of_month'   => $request['recurrence-day-of-month'] ?? 1,
+                'month_interval' => (int) ($request['recurrence-month-interval'] ?? 1),
+                'time'           => $time,
+            ], fn($v) => $v !== null),
+            'custom'  => array_filter(['interval_days' => (int) ($request['recurrence-interval'] ?? 1), 'time' => $time], fn($v) => $v !== null),
             default   => [],
         };
     }

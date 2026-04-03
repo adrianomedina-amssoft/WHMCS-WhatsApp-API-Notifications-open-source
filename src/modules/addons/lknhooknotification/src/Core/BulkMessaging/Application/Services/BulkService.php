@@ -316,9 +316,19 @@ final class BulkService
             $status = BulkStatus::IN_PROGRESS->value;
         }
 
-        $nextRunAt = ($isRecurring || $hasFutureStart) && $newBulkRequest->startAt
-            ? $newBulkRequest->startAt->format('Y-m-d H:i:s')
-            : null;
+        $nextRunAt = null;
+
+        if (($isRecurring || $hasFutureStart) && $newBulkRequest->startAt) {
+            $nextRunAtDt = clone $newBulkRequest->startAt;
+
+            // Apply configured dispatch time for recurring campaigns
+            if ($isRecurring && !empty($newBulkRequest->recurrenceConfig['time'])) {
+                $parts = explode(':', $newBulkRequest->recurrenceConfig['time']);
+                $nextRunAtDt->setTime((int) ($parts[0] ?? 0), (int) ($parts[1] ?? 0), 0);
+            }
+
+            $nextRunAt = $nextRunAtDt->format('Y-m-d H:i:s');
+        }
 
         $bulkId = $this->bulkRepository->insertBulk(
             title:            $newBulkRequest->title ?? '',
@@ -393,12 +403,22 @@ final class BulkService
 
             // Recalculate next_run_at only when admin provides a new future startAt.
             // Otherwise preserve the existing value so active schedules are not disrupted.
+            // If a recurrence time is set, it overrides the time portion of next_run_at.
             $now = new DateTime();
+
             if ($req->startAt && $req->startAt > $now) {
-                $nextRunAt = $req->startAt->format('Y-m-d H:i:s');
+                $nextRunAtDt = clone $req->startAt;
             } else {
-                $nextRunAt = $bulk->nextRunAt ? $bulk->nextRunAt->format('Y-m-d H:i:s') : null;
+                $nextRunAtDt = $bulk->nextRunAt ? clone $bulk->nextRunAt : null;
             }
+
+            // Apply configured dispatch time to next_run_at date
+            if ($nextRunAtDt && !empty($req->recurrenceConfig['time'])) {
+                $parts = explode(':', $req->recurrenceConfig['time']);
+                $nextRunAtDt->setTime((int) ($parts[0] ?? 0), (int) ($parts[1] ?? 0), 0);
+            }
+
+            $nextRunAt = $nextRunAtDt ? $nextRunAtDt->format('Y-m-d H:i:s') : null;
 
             $result = $this->bulkRepository->updateBulkFull(
                 bulkId:           $bulkId,

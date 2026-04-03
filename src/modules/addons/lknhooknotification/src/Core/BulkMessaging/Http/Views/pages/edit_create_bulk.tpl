@@ -834,6 +834,18 @@
                                 </div>
                             </div>
 
+                            {* DISPATCH TIME: shared by all recurring types *}
+                            <div class="form-group lkn-rec-daily lkn-rec-weekly lkn-rec-monthly lkn-rec-custom" style="display:none;">
+                                <label for="recurrence-time" class="col-sm-6 control-label">
+                                    {lkn_hn_lang text="Dispatch time"}
+                                </label>
+                                <div class="col-sm-6">
+                                    <input type="time" class="form-control" id="recurrence-time" name="recurrence-time"
+                                        value="{if !empty($page_params.state->recurrenceConfig['time'])}{$page_params.state->recurrenceConfig['time']}{elseif $page_params.state->startAt}{$page_params.state->startAt->format('H:i')}{else}08:00{/if}">
+                                    <span class="help-block">{lkn_hn_lang text="Time of day for each recurring dispatch."}</span>
+                                </div>
+                            </div>
+
                             {* DAILY / CUSTOM: interval in days *}
                             <div class="form-group lkn-rec-daily lkn-rec-custom" style="display:none;">
                                 <label class="col-sm-6 control-label">{lkn_hn_lang text="Repeat every (days)"}</label>
