@@ -121,7 +121,8 @@ final class ChatwootApiClient extends BaseApiClient
      */
     final public function searchContact(string $searchQuery): ApiResponse
     {
-        $response = $this->request('GET', "contacts/search?q=$searchQuery");
+        // Usar queryParams para que http_build_query aplique urlencode corretamente
+        $response = $this->request('GET', 'contacts/search', [], [], ['q' => $searchQuery]);
 
         $response->setOperationResult($response->body['meta']['count'] > 0);
 

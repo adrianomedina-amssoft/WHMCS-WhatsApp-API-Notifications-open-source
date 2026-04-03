@@ -165,7 +165,8 @@ function lknhooknotification_output(array $vars): void
     } catch (Throwable $th) {
         $msg = 'Internal error';
 
-        $error = $th->__toString();
+        // Escapar o stack trace antes de inserir em HTML para evitar XSS
+        $error = htmlspecialchars($th->__toString(), ENT_QUOTES, 'UTF-8');
 
         echo "
         <style>

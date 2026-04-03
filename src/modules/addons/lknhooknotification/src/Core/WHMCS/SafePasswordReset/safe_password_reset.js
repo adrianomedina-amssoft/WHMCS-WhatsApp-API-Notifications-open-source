@@ -1,6 +1,7 @@
 window.document.addEventListener('DOMContentLoaded', () => {
     const scriptTag = document.querySelector('script[src$="safe_password_reset.js"]');
     const translations = JSON.parse(scriptTag.dataset.translations);
+    const apiNonce = scriptTag.dataset.apiNonce || '';
 
     function translate(key) {
         return translations[key] || key
@@ -23,7 +24,7 @@ window.document.addEventListener('DOMContentLoaded', () => {
 
         const email = passwordResetEmailInput.value
 
-        const res = await fetch(`/modules/addons/lknhooknotification/src/Core/api.php?endpoint=password/reset?email=${email}`)
+        const res = await fetch(`/modules/addons/lknhooknotification/src/Core/api.php?endpoint=password/reset?email=${encodeURIComponent(email)}&nonce=${encodeURIComponent(apiNonce)}`)
             .then(res => res.json())
 
         if (res.exceeded_try) {
