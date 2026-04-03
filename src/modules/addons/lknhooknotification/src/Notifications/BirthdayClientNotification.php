@@ -45,7 +45,6 @@ final class BirthdayClientNotification extends AbstractCronNotification{
 
     public function getPayload(): array
     {
-        echo '<hr>: ' . 'ping' . '<hr>';
         $formats = [
             'DDMMYYYY' => ['dayId' => 1, 'monthId' =>4 ],
             'MMDDYYYY' => ['dayId' => 4, 'monthId' =>1 ],
