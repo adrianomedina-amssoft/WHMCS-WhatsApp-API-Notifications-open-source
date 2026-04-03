@@ -4,6 +4,7 @@ namespace Lkn\HookNotification\Core\Notification\Application;
 
 use Lkn\HookNotification\Core\Notification\Domain\AbstractNotification;
 use Lkn\HookNotification\Core\Notification\Domain\BuiltInNotification;
+use Lkn\HookNotification\Core\Notification\Domain\DynamicCronNotification;
 use Lkn\HookNotification\Core\Notification\Domain\DynamicNotification;
 use Lkn\HookNotification\Core\Notification\Domain\NotificationTemplate;
 use Lkn\HookNotification\Core\Notification\Infrastructure\Repositories\CustomNotificationRepository;
@@ -349,16 +350,32 @@ final class NotificationFactory extends Singleton
                 continue;
             }
 
-            $notifInstance = new DynamicNotification(
-                $record->code,
-                $recipe['category'],
-                $hook,
-                $recipe['params'],
-                $recipe['clientIdFinder'],
-                $recipe['categoryIdFinder'],
-                $record->description ?: null,
-                $record->label,
-            );
+            // Notificações com DailyCronJob precisam de getPayload() — usa DynamicCronNotification
+            $isCronHook = $hook === Hooks::DAILY_CRON_JOB;
+
+            $notifInstance = $isCronHook
+                ? new DynamicCronNotification(
+                    $record->code,
+                    $recipe['category'],
+                    $hook,
+                    $recipe['params'],
+                    $recipe['clientIdFinder'],
+                    $recipe['categoryIdFinder'],
+                    $record->description ?: null,
+                    $record->label,
+                    isset($record->days) ? (int) $record->days : null,
+                    $record->base_recipe,
+                )
+                : new DynamicNotification(
+                    $record->code,
+                    $recipe['category'],
+                    $hook,
+                    $recipe['params'],
+                    $recipe['clientIdFinder'],
+                    $recipe['categoryIdFinder'],
+                    $record->description ?: null,
+                    $record->label,
+                );
 
             $notifInstance->setTemplates(
                 $this->buildNotificationTemplates($rawNotifTemplates)
