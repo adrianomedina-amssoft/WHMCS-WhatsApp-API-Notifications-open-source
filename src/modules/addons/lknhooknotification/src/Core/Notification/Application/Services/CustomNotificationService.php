@@ -34,6 +34,12 @@ final class CustomNotificationService
         return $this->customNotifRepo->findAll();
     }
 
+    /** Retorna o registro raw de uma notificação customizada pelo código */
+    public function findByCode(string $code): ?object
+    {
+        return $this->customNotifRepo->findByCode($code);
+    }
+
     /**
      * Cria uma nova notificação customizada.
      *
@@ -110,9 +116,11 @@ final class CustomNotificationService
     }
 
     /**
-     * Atualiza label e descrição de uma notificação customizada existente.
+     * Atualiza os campos editáveis de uma notificação customizada existente.
+     * O código (identificador único) e a receita base não podem ser alterados
+     * para preservar a compatibilidade com os templates já configurados.
      *
-     * @param array{label?: string, description?: string} $data
+     * @param array{label?: string, description?: string, condition_note?: string, days?: int|null, is_active?: int} $data
      */
     public function update(string $code, array $data): Result
     {
@@ -130,6 +138,17 @@ final class CustomNotificationService
             if (isset($data['description'])) {
                 $updateData['description'] = trim($data['description']);
             }
+
+            if (isset($data['condition_note'])) {
+                $updateData['condition_note'] = trim($data['condition_note']);
+            }
+
+            // Dias: permitido somente para DailyCronJob; null quando não informado
+            if (array_key_exists('days', $data)) {
+                $updateData['days'] = !empty($data['days']) ? (int) $data['days'] : null;
+            }
+
+            $updateData['is_active'] = isset($data['is_active']) ? 1 : 0;
 
             if (!empty($updateData)) {
                 $this->customNotifRepo->update($code, $updateData);

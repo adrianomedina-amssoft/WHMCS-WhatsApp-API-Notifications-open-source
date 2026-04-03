@@ -1,7 +1,11 @@
 {extends "{$lkn_hn_layout_path}/layout/layout.tpl"}
 
 {block "page_title"}
-    {lkn_hn_lang text="New Notification"}
+    {if $page_params.form_action === 'edit'}
+        {lkn_hn_lang text="Edit Notification"}
+    {else}
+        {lkn_hn_lang text="New Notification"}
+    {/if}
 {/block}
 
 {block "title_right_side"}
@@ -19,7 +23,12 @@
                     <h3 class="panel-title">{lkn_hn_lang text="Notification settings"}</h3>
                 </div>
                 <div class="panel-body">
-                    <form method="POST" action="{$lkn_hn_base_endpoint}&page=notifications/new">
+                    {* Em modo edição o form envia para a rota de edição; em criação para /new *}
+                    <form method="POST" action="{$lkn_hn_base_endpoint}&page={if $page_params.form_action === 'edit'}notifications/{$page_params.notif_code}/edit{else}notifications/new{/if}">
+
+                        {* Atribuição de variáveis de edição para evitar repetição *}
+                        {assign var="ed" value=$page_params.editing_data}
+                        {assign var="is_edit" value=($page_params.form_action === 'edit')}
 
                         {* Nome visível na listagem *}
                         <div class="form-group">
@@ -31,16 +40,18 @@
                                 class="form-control"
                                 id="notif-label"
                                 name="label"
+                                value="{if $is_edit}{$ed->label|escape:'html'}{/if}"
                                 placeholder="{lkn_hn_lang text='Ex: Invoice overdue for 3 days'}"
                                 required
                             >
                             <p class="help-block">{lkn_hn_lang text="Descriptive name shown in the notification list."}</p>
                         </div>
 
-                        {* Código interno único *}
+                        {* Código interno único — somente leitura no modo edição *}
                         <div class="form-group">
                             <label for="notif-code">
-                                {lkn_hn_lang text="Internal code"} <span class="text-danger">*</span>
+                                {lkn_hn_lang text="Internal code"}
+                                {if !$is_edit}<span class="text-danger">*</span>{/if}
                                 <i
                                     class="far fa-question-circle"
                                     data-toggle="tooltip"
@@ -53,13 +64,17 @@
                                 class="form-control"
                                 id="notif-code"
                                 name="code"
+                                value="{if $is_edit}{$ed->code|escape:'html'}{/if}"
                                 placeholder="Ex: InvoiceOverdue3Days"
                                 pattern="[A-Za-z][A-Za-z0-9_]*"
-                                required
+                                {if $is_edit}readonly style="background:#f5f5f5; cursor:not-allowed;"{else}required{/if}
                             >
+                            {if $is_edit}
+                                <p class="help-block text-muted">{lkn_hn_lang text="The internal code cannot be changed after creation."}</p>
+                            {/if}
                         </div>
 
-                        {* Hook do WHMCS *}
+                        {* Hook do WHMCS — somente leitura no modo edição *}
                         <div class="form-group">
                             <label for="notif-hook">
                                 {lkn_hn_lang text="Hook / Trigger"} <span class="text-danger">*</span>
@@ -70,20 +85,27 @@
                                     title="{lkn_hn_lang text='WHMCS event that triggers this notification.'}"
                                 ></i>
                             </label>
-                            <select class="form-control" id="notif-hook" name="hook" required>
-                                <option value="">{lkn_hn_lang text="Select a hook..."}</option>
-                                {foreach from=$page_params.hook_groups key=$groupName item=$hooks}
-                                    <optgroup label="{$groupName}">
-                                        {foreach from=$hooks key=$hookValue item=$hookLabel}
-                                            <option value="{$hookValue}">{$hookLabel}</option>
-                                        {/foreach}
-                                    </optgroup>
-                                {/foreach}
-                            </select>
+                            {if $is_edit}
+                                {* No modo edição exibe o hook como texto e usa campo hidden *}
+                                <input type="hidden" name="hook" value="{$ed->hook|escape:'html'}">
+                                <input type="text" class="form-control" value="{$ed->hook|escape:'html'}" readonly style="background:#f5f5f5; cursor:not-allowed;">
+                                <p class="help-block text-muted">{lkn_hn_lang text="The hook cannot be changed after creation."}</p>
+                            {else}
+                                <select class="form-control" id="notif-hook" name="hook" required>
+                                    <option value="">{lkn_hn_lang text="Select a hook..."}</option>
+                                    {foreach from=$page_params.hook_groups key=$groupName item=$hooks}
+                                        <optgroup label="{$groupName}">
+                                            {foreach from=$hooks key=$hookValue item=$hookLabel}
+                                                <option value="{$hookValue}">{$hookLabel}</option>
+                                            {/foreach}
+                                        </optgroup>
+                                    {/foreach}
+                                </select>
+                            {/if}
                         </div>
 
-                        {* Campo de dias — visível apenas quando hook = DailyCronJob *}
-                        <div class="form-group" id="field-days" style="display:none;">
+                        {* Campo de dias — visível quando hook = DailyCronJob *}
+                        <div class="form-group" id="field-days" style="{if $is_edit && $ed->hook === 'DailyCronJob'}display:block;{else}display:none;{/if}">
                             <label for="notif-days">
                                 {lkn_hn_lang text="Days of delay"} <span class="text-danger">*</span>
                                 <i
@@ -99,12 +121,13 @@
                                 id="notif-days"
                                 name="days"
                                 min="1"
+                                value="{if $is_edit && $ed->days}{$ed->days}{/if}"
                                 placeholder="{lkn_hn_lang text='Ex: 3'}"
                             >
                             <p class="help-block">{lkn_hn_lang text="Example: 3 = fires when invoice is 3 days overdue."}</p>
                         </div>
 
-                        {* Receita base *}
+                        {* Receita base — somente leitura no modo edição *}
                         <div class="form-group">
                             <label for="notif-recipe">
                                 {lkn_hn_lang text="Base recipe"} <span class="text-danger">*</span>
@@ -115,12 +138,18 @@
                                     title="{lkn_hn_lang text='Determines which variables will be available in the message template (client name, invoice ID, etc.).'}"
                                 ></i>
                             </label>
-                            <select class="form-control" id="notif-recipe" name="base_recipe" required>
-                                <option value="">{lkn_hn_lang text="Select a recipe..."}</option>
-                                {foreach from=$page_params.recipes key=$recipeKey item=$recipeLabel}
-                                    <option value="{$recipeKey}">{$recipeLabel}</option>
-                                {/foreach}
-                            </select>
+                            {if $is_edit}
+                                <input type="hidden" name="base_recipe" value="{$ed->base_recipe|escape:'html'}">
+                                <input type="text" class="form-control" value="{$page_params.recipes[$ed->base_recipe]|default:$ed->base_recipe|escape:'html'}" readonly style="background:#f5f5f5; cursor:not-allowed;">
+                                <p class="help-block text-muted">{lkn_hn_lang text="The base recipe cannot be changed after creation."}</p>
+                            {else}
+                                <select class="form-control" id="notif-recipe" name="base_recipe" required>
+                                    <option value="">{lkn_hn_lang text="Select a recipe..."}</option>
+                                    {foreach from=$page_params.recipes key=$recipeKey item=$recipeLabel}
+                                        <option value="{$recipeKey}">{$recipeLabel}</option>
+                                    {/foreach}
+                                </select>
+                            {/if}
                         </div>
 
                         {* Condição opcional *}
@@ -139,6 +168,7 @@
                                 class="form-control"
                                 id="notif-condition"
                                 name="condition_note"
+                                value="{if $is_edit}{$ed->condition_note|default:''|escape:'html'}{/if}"
                                 placeholder="{lkn_hn_lang text='Ex: Only for invoices above R$100'}"
                             >
                         </div>
@@ -152,10 +182,11 @@
                                 name="description"
                                 rows="2"
                                 placeholder="{lkn_hn_lang text='Briefly describe what this notification does and when it fires.'}"
-                            ></textarea>
+                            >{if $is_edit}{$ed->description|default:''|escape:'html'}{/if}</textarea>
                         </div>
 
-                        {* Template de mensagem *}
+                        {* Template de mensagem — somente no modo criação; no editar usa o editor de templates existente *}
+                        {if !$is_edit}
                         <div class="form-group">
                             <label for="notif-template">
                                 {lkn_hn_lang text="Message template"}
@@ -188,6 +219,7 @@
                                 </select>
                             </p>
                         </div>
+                        {/if}
 
                         {* Status *}
                         <div class="form-group">
@@ -199,7 +231,7 @@
                                         name="is_active"
                                         id="notif-status"
                                         value="1"
-                                        checked
+                                        {if !$is_edit || ($is_edit && $ed->is_active)}checked{/if}
                                     >
                                     {lkn_hn_lang text="Enabled"}
                                 </label>

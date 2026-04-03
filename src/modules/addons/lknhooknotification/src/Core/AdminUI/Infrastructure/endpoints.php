@@ -68,6 +68,12 @@ return [
             'viewCreateCustomNotification',
         ],
     ],
+    'notifications/{notif_code}/edit' => [
+        'class' => [
+            NotificationController::class,
+            'viewEditCustomNotification',
+        ],
+    ],
     'notifications/clone' => [
         'class' => [
             NotificationController::class,

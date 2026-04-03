@@ -471,6 +471,10 @@ $_ADDONLANG['This template will not be sent because its is disabled.'] = 'Este t
 $_ADDONLANG['Triggered by']                       = 'Disparada por';
 $_ADDONLANG['Recipient']                          = 'Destinatário';
 $_ADDONLANG['Notification deleted successfully.'] = 'Notificação excluída com sucesso.';
+$_ADDONLANG['Edit Notification']                  = 'Editar Notificação';
+$_ADDONLANG['The internal code cannot be changed after creation.'] = 'O código interno não pode ser alterado após a criação.';
+$_ADDONLANG['The hook cannot be changed after creation.'] = 'O hook não pode ser alterado após a criação.';
+$_ADDONLANG['The base recipe cannot be changed after creation.'] = 'A receita base não pode ser alterada após a criação.';
 
 // Formulário de criação de notificação customizada
 $_ADDONLANG['Back to list']                       = 'Voltar para a lista';

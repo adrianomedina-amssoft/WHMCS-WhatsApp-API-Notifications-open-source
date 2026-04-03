@@ -284,6 +284,57 @@ final class NotificationController extends BaseController
     }
 
     /**
+     * Exibe o formulário de edição de uma notificação customizada.
+     * No POST, persiste as alterações e reexibe o formulário com feedback.
+     *
+     * @param array<mixed> $request
+     */
+    public function viewEditCustomNotification(string $notifCode, array $request): void
+    {
+        $notification = $this->notificationService->buildNotification($notifCode);
+
+        // Somente notificações criadas pelo painel podem ser editadas por aqui
+        if (!$notification || !property_exists($notification, 'isDynamic') || !$notification->isDynamic) {
+            lkn_hn_redirect_to_404();
+
+            return;
+        }
+
+        if (!empty($request) && isset($request['label'])) {
+            $result = $this->customNotificationService->update($notifCode, $request);
+
+            if ($result->code === 'success') {
+                $this->view->alert('success', lkn_hn_lang('The notification was saved.'));
+                // Recarrega para refletir os dados atualizados
+                $notification = $this->notificationService->buildNotification($notifCode);
+            } else {
+                $this->view->alert('danger', $result->errors['message'] ?? $result->errors['exception'] ?? 'Erro ao salvar.');
+            }
+        }
+
+        // Busca o registro raw para preencher o formulário com todos os campos
+        $rawRecord = $this->customNotificationService->findByCode($notifCode);
+
+        $hookGroups = $this->buildHookGroups();
+
+        $recipes = [
+            'invoice' => lkn_hn_lang('Invoice'),
+            'order'   => lkn_hn_lang('Order'),
+            'ticket'  => lkn_hn_lang('Ticket'),
+            'module'  => lkn_hn_lang('Service'),
+            'domain'  => lkn_hn_lang('Domain'),
+        ];
+
+        $this->view->view('create_edit_custom_notification', [
+            'hook_groups'  => $hookGroups,
+            'recipes'      => $recipes,
+            'form_action'  => 'edit',
+            'notif_code'   => $notifCode,
+            'editing_data' => $rawRecord,
+        ]);
+    }
+
+    /**
      * Exclui uma notificação customizada (somente notificações criadas pelo painel).
      *
      * @param array<mixed> $request

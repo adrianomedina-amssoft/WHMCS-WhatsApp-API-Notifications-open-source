@@ -90,6 +90,27 @@
                                     {* <td></td> *}
                                     <td>
                                         <div style="display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; align-items: center;">
+
+                                            {* Botão Editar — para notificações dinâmicas abre o editor de metadados;
+                                               para nativas abre o editor do primeiro template *}
+                                            {if isset($notification->isDynamic) && $notification->isDynamic}
+                                                <a
+                                                    class="btn btn-default btn-sm"
+                                                    href="{$lkn_hn_base_endpoint}&page=notifications/{$notification->code}/edit"
+                                                >
+                                                    <i class="fas fa-edit"></i>
+                                                    {lkn_hn_lang text="Edit"}
+                                                </a>
+                                            {else}
+                                                <a
+                                                    class="btn btn-default btn-sm"
+                                                    href="{$lkn_hn_base_endpoint}&page=notifications/{$notification->code}/templates/first"
+                                                >
+                                                    <i class="fas fa-edit"></i>
+                                                    {lkn_hn_lang text="Edit"}
+                                                </a>
+                                            {/if}
+
                                             {if !$page_params.must_block_add_other_notifications}
                                                 <a
                                                     type="button"
