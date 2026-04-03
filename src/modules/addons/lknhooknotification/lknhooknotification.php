@@ -78,31 +78,32 @@ function lknhooknotification_upgrade($vars): void
         return;
     }
 
-    if ($currentlyInstalledVersion < 2.0) {
+    // Usar version_compare para evitar erro de type juggling com versões como "3.10" vs "3.2"
+    if (version_compare($currentlyInstalledVersion, '2.0.0', '<')) {
         DatabaseUpgrade::v200();
     }
 
-    if ($currentlyInstalledVersion < 2.3) {
+    if (version_compare($currentlyInstalledVersion, '2.3.0', '<')) {
         DatabaseUpgrade::v230();
     }
 
-    if ($currentlyInstalledVersion < 3.1) {
+    if (version_compare($currentlyInstalledVersion, '3.1.0', '<')) {
         DatabaseUpgrade::v310();
     }
 
-    if ($currentlyInstalledVersion < 3.2) {
+    if (version_compare($currentlyInstalledVersion, '3.2.0', '<')) {
         DatabaseUpgrade::v320();
     }
 
-    if ($currentlyInstalledVersion < 3.3) {
+    if (version_compare($currentlyInstalledVersion, '3.3.0', '<')) {
         DatabaseUpgrade::v330();
     }
 
-    if ($currentlyInstalledVersion < 3.7) {
+    if (version_compare($currentlyInstalledVersion, '3.7.0', '<')) {
         DatabaseUpgrade::v370();
     }
 
-    if ($currentlyInstalledVersion < 3.8) {
+    if (version_compare($currentlyInstalledVersion, '3.8.0', '<')) {
         DatabaseUpgrade::v380();
     }
 

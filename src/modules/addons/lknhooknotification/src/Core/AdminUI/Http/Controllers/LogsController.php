@@ -19,6 +19,9 @@ final class LogsController extends BaseController
 
     public function viewLogs(array $request): void
     {
+        // Definir $filter antes do primeiro uso para evitar variável indefinida
+        $filter = !empty($request['filter']) ? urldecode($request['filter']) : null;
+
         if (isset($request['download-last-100-logs'])) {
             $logsForView = $this->logsRepository->paginate(0, 100, filter: $filter);
 
@@ -36,7 +39,6 @@ final class LogsController extends BaseController
         $logsPerPage = 12;
         $currentPage = $request['pageN'] ?? 1;
         $offset      = ($currentPage - 1) * $logsPerPage;
-        $filter      = $request['filter'] ? urldecode($request['filter']) : null;
 
         $logsForView = $this->logsRepository->paginate($offset, $logsPerPage, filter: $filter);
 

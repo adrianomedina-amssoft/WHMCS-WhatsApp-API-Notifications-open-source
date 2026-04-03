@@ -226,7 +226,7 @@ function lkn_hn_config_set(Platforms $platform, Settings $setting, $value)
     lkn_hn_log(
         'Upsert setting',
         ['setting' => $setting->name, 'value' => $value],
-        ['result' > $result]
+        ['result' => $result]
     );
 }
 

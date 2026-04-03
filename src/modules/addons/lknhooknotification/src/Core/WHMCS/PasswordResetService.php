@@ -44,7 +44,8 @@ final class PasswordResetService
         $client = Capsule::table('tblclients')->where('email', $email)->first(['id', 'email']);
 
         if (!$user && !$client) {
-            return [];
+            // Retornar resposta genérica para evitar enumeração de usuários válidos
+            return ['sent_to_email' => lkn_hn_mask_value($email)];
         }
 
         $thirtyMinutesAgo = (new DateTime())->modify('-30 minutes');
