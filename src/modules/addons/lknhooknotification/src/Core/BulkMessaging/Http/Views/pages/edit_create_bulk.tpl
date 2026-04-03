@@ -520,6 +520,39 @@
                             </div>
                         </div>
 
+                        {* CLIENT GROUPS *}
+                        {if !empty($page_params.field_options['client_groups'])}
+                            <div class="form-group">
+                                <label
+                                    for="client-groups"
+                                    class="col-sm-6 control-label"
+                                >
+                                    {lkn_hn_lang text="Client groups"}
+                                </label>
+                                <div class="col-sm-6">
+                                    <select
+                                        class="form-control"
+                                        id="client-groups"
+                                        name="client-groups[]"
+                                        multiple
+                                        {if $page_params.mode === 'edit'}disabled{/if}
+                                    >
+                                        {foreach from=$page_params.field_options['client_groups'] item=$group}
+                                            <option
+                                                {if $page_params.state->filters['client_groups'] && in_array($group['value'], $page_params.state->filters['client_groups'])}
+                                                    selected
+                                                {/if}
+                                                value="{$group['value']}"
+                                            >
+                                                {$group['label']}
+                                            </option>
+                                        {/foreach}
+                                    </select>
+                                    <span class="help-block">{lkn_hn_lang text="Leave empty to include all groups."}</span>
+                                </div>
+                            </div>
+                        {/if}
+
                         {* CLIENTS *}
                         {if $page_params.mode !== 'edit'}
                             <hr>
