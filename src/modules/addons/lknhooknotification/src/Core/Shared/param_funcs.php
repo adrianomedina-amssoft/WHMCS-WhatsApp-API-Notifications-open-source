@@ -184,7 +184,7 @@ function getClientEmailByClientId(int $clientId): string
     return strtolower($client->email ?? '');
 }
 
-function getInvoicePdfUrlByInvocieId(
+function getInvoicePdfUrlByInvoiceId(
     int $id,
     bool $returnNullOtherwise = false,
     bool $returnSystemPath = false,
@@ -223,7 +223,7 @@ function getInvoiceImgUrlByInvoiceId(
     int $invoiceId,
     bool $returnSystemPath = false,
 ): ?string {
-    $pdfSystemPath = getInvoicePdfUrlByInvocieId($invoiceId, true, true);
+    $pdfSystemPath = getInvoicePdfUrlByInvoiceId($invoiceId, true, true);
 
     if (!$pdfSystemPath || !file_exists($pdfSystemPath)) {
         return null;

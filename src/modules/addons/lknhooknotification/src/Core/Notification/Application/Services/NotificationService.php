@@ -44,7 +44,7 @@ final class NotificationService
             }
 
             $this->notificationRepository->upsertNotification(
-                notiifcationCode: $notificationCode,
+                notificationCode: $notificationCode,
                 platform: $platform->value,
                 locale: $request['locale'],
                 template: $template,

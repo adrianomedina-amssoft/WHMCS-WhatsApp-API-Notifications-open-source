@@ -5,5 +5,5 @@ use Lkn\HookNotification\Core\WHMCS\SafePasswordReset\SafePasswordResetControlle
 add_hook(
     'ClientAreaPagePasswordReset',
     1,
-    fn (array $whmcsHookParams) =>  (new SafePasswordResetController())->handleClientAreaPassowordReset($whmcsHookParams)
+    fn (array $whmcsHookParams) =>  (new SafePasswordResetController())->handleClientAreaPasswordReset($whmcsHookParams)
 );

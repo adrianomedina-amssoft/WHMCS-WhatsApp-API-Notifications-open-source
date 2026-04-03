@@ -10,7 +10,7 @@ use Lkn\HookNotification\Core\Notification\Domain\NotificationParameterCollectio
 use Lkn\HookNotification\Core\Shared\Infrastructure\Hooks;
 use WHMCS\Database\Capsule;
 
-final class UserPasswordChangeConfirmedNotication extends AbstractNotification
+final class UserPasswordChangeConfirmedNotification extends AbstractNotification
 {
     public function __construct()
     {

@@ -7,7 +7,7 @@ use Lkn\HookNotification\Core\Shared\Infrastructure\Repository\BaseRepository;
 class NotificationRepository extends BaseRepository
 {
     public function upsertNotification(
-        string $notiifcationCode,
+        string $notificationCode,
         string $platform,
         string $locale,
         string $template,
@@ -17,7 +17,7 @@ class NotificationRepository extends BaseRepository
             ->table('mod_lkn_hook_notification_localized_tpls')
             ->updateOrInsert(
                 [
-                    'notif_code' => $notiifcationCode,
+                    'notif_code' => $notificationCode,
                     'lang' => $locale,
                 ],
                 [
@@ -60,8 +60,6 @@ class NotificationRepository extends BaseRepository
      */
     public function getEnabledNotifications()
     {
-        // For passing WhatsApp assoc to Notification, see the last message here: https://chatgpt.com/c/67f01062-776c-8000-a013-c25b1f937109
-
         $standardNotifs = $this->query
             ->table('mod_lkn_hook_notification_localized_tpls')
             ->select('notif_code', 'platform', 'platform_payload', 'lang', 'tpl')

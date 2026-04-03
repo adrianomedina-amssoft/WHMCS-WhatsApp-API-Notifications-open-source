@@ -15,7 +15,7 @@ final class SafePasswordResetController {
         $this->notificationService = new NotificationService();
     }
 
-    public function handleClientAreaPassowordReset(array $whmcsHookParams): void
+    public function handleClientAreaPasswordReset(array $whmcsHookParams): void
     {
         try {
             if (!$this->notificationService->isNotificationEnabled('SafePasswordReset')) {
@@ -48,7 +48,7 @@ final class SafePasswordResetController {
         </script>";
         } catch (Throwable $th) {
             lkn_hn_log(
-                'handleClientAreaPassowordReset exception',
+                'handleClientAreaPasswordReset exception',
                 ['error' => $th->__toString()]
             );
         }

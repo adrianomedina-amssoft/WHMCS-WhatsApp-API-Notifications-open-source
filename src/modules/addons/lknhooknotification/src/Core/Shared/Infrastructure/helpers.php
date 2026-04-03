@@ -295,12 +295,12 @@ function lkn_hn_remove_phone_number(string $value): string
     return preg_replace('/[^0-9]/', '', $value);
 }
 
-function lkn_hn_safe_json_encode(array $json, int $additionlFlags = 0)
+function lkn_hn_safe_json_encode(array $json, int $additionalFlags = 0)
 {
     return json_encode(
         $json,
         JSON_UNESCAPED_UNICODE
-        | JSON_UNESCAPED_SLASHES | $additionlFlags
+        | JSON_UNESCAPED_SLASHES | $additionalFlags
     );
 }
 

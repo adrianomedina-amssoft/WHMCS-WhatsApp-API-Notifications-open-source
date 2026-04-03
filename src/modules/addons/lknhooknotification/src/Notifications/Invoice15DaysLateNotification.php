@@ -53,7 +53,7 @@ final class Invoice15DaysLateNotification extends AbstractCronNotification
             new NotificationParameter(
                 'invoice_id_and_first_item',
                 lkn_hn_lang('invoice_id_and_first_item'),
-                fn (): string => getInvoicePdfUrlByInvocieId($this->whmcsHookParams['invoice_id'])
+                fn (): string => getInvoicePdfUrlByInvoiceId($this->whmcsHookParams['invoice_id'])
             ),
             new NotificationParameter(
                 'client_id',

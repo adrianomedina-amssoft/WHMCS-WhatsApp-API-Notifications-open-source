@@ -35,7 +35,7 @@ final class InvoiceReminderNotification extends AbstractManualNotification
                 new NotificationParameter(
                     'invoice_pdf_url',
                     lkn_hn_lang('Invoice PDF URL'),
-                    fn (): string => getInvoicePdfUrlByInvocieId($this->whmcsHookParams['invoiceid'])
+                    fn (): string => getInvoicePdfUrlByInvoiceId($this->whmcsHookParams['invoiceid'])
                 ),
                 new NotificationParameter(
                     'invoice_balance',
