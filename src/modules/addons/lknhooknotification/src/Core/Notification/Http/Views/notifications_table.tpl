@@ -111,16 +111,14 @@
                                                 </a>
                                             {/if}
 
-                                            {if !$page_params.must_block_add_other_notifications}
-                                                <a
-                                                    type="button"
-                                                    class="btn btn-link btn-sm"
-                                                    href="{$lkn_hn_base_endpoint}&page=notifications/{$notification->code}/templates/new"
-                                                >
-                                                    <i class="fas fa-plus"></i>
-                                                    {lkn_hn_lang text="Setup template"}
-                                                </a>
-                                            {/if}
+                                            <a
+                                                type="button"
+                                                class="btn btn-link btn-sm"
+                                                href="{$lkn_hn_base_endpoint}&page=notifications/{$notification->code}/templates/new"
+                                            >
+                                                <i class="fas fa-plus"></i>
+                                                {lkn_hn_lang text="Setup template"}
+                                            </a>
 
                                             {* Botão clonar — disponível para qualquer notificação *}
                                             <form
@@ -224,14 +222,12 @@
                                                                     >
                                                                         {* platforms/{platform}/notifications/{notif_code}/templates/{tpl_lang} *}
 
-                                                                        {if !$page_params.must_block_edit_notification}
-                                                                            <a
-                                                                                class="btn btn-primary btn-xs"
-                                                                                href="{$lkn_hn_base_endpoint}&page=notifications/{$notification->code}/templates/{$template->lang}"
-                                                                            >
-                                                                                {lkn_hn_lang text="Edit"}
-                                                                            </a>
-                                                                        {/if}
+                                                                        <a
+                                                                            class="btn btn-primary btn-xs"
+                                                                            href="{$lkn_hn_base_endpoint}&page=notifications/{$notification->code}/templates/{$template->lang}"
+                                                                        >
+                                                                            {lkn_hn_lang text="Edit"}
+                                                                        </a>
 
                                                                         <form
                                                                             id="delete-notif-form-{$notification->code}-{$template->lang}"

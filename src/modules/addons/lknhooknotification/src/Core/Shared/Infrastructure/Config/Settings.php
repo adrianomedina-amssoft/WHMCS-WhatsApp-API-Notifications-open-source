@@ -50,7 +50,6 @@ enum Settings: string
     case BAILEYS_WP_CUSTOM_FIELD_ID = 'baileys_wp_custom_field_id';
 
     case ENABLE_LOG                        = 'enable_log';
-    case LKN_LICENSE                       = 'lkn_license';
     case DEFAULT_CLIENT_NAME               = 'default_client_name';
     case LATEST_VERSION                    = 'latest_version';
     case NEW_VERSION_DISMISS_ON_ADMIN_HOME = 'new_version_dismiss_on_admin_home';

@@ -1,6 +1,5 @@
 <?php
 
-use Lkn\HookNotification\Core\AdminUI\Application\Services\LicenseService;
 use Lkn\HookNotification\Core\Shared\Infrastructure\Config\Settings;
 
 return [
@@ -46,13 +45,11 @@ return [
                     'label' => lkn_hn_lang('Evolution API'),
                     'endpoint' => 'platforms/wp-evo/settings',
                     'icon' => 'fal fa-cog',
-                    'block' => LicenseService::getInstance()->mustBlockProFeatures(),
                 ],
                 [
                     'label' => lkn_hn_lang('Baileys'),
                     'endpoint' => 'platforms/baileys/settings',
                     'icon' => 'fal fa-cog',
-                    'block' => LicenseService::getInstance()->mustBlockProFeatures(),
                 ],
                 [
                     'label' => lkn_hn_lang('WhatsApp Meta'),

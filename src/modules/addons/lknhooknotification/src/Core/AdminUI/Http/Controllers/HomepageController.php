@@ -2,7 +2,6 @@
 
 namespace Lkn\HookNotification\Core\AdminUI\Http\Controllers;
 
-use Lkn\HookNotification\Core\AdminUI\Application\Services\LicenseService;
 use Lkn\HookNotification\Core\AdminUI\Application\Services\VersionUpgradeWarningService;
 use Lkn\HookNotification\Core\NotificationReport\Application\NotificationReportService;
 use Lkn\HookNotification\Core\Shared\Infrastructure\Config\Platforms;
@@ -23,15 +22,10 @@ final class HomepageController extends BaseController
 
     public function viewHomepage(array $request): void
     {
-        $licenseService = LicenseService::getInstance();
-
-        $licenseCheckRes = $licenseService->isLicenseActive();
-
         $statistics = $this->notificationReportService->getStatistics();
 
         $viewParams = [
             ...$statistics,
-            'license_status' => $licenseCheckRes->code,
             'new_version_alert' => $this->newVersion(),
             'dismiss_v400_alert' => true,
         ];

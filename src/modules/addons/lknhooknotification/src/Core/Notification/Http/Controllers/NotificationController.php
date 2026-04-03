@@ -2,7 +2,6 @@
 
 namespace Lkn\HookNotification\Core\Notification\Http\Controllers;
 
-use Lkn\HookNotification\Core\AdminUI\Application\Services\LicenseService;
 use Lkn\HookNotification\Core\Notification\Application\Services\CustomNotificationService;
 use Lkn\HookNotification\Core\Notification\Application\Services\NotificationService;
 use Lkn\HookNotification\Core\Notification\Application\Services\NotificationViewService;
@@ -226,8 +225,6 @@ final class NotificationController extends BaseController
 
         $this->view->view('notifications_table', [
             'notifications' => $notifications,
-            'must_block_add_other_notifications' => LicenseService::getInstance()->mustBlockNotificationEdit(),
-            'must_block_edit_notification' => LicenseService::getInstance()->mustBlockNotificationEdit(),
             'platform_list' => $this->platformService->getEnabledPlatforms(),
         ]);
     }
@@ -355,8 +352,6 @@ final class NotificationController extends BaseController
 
         $this->view->view('notifications_table', [
             'notifications' => $notifications,
-            'must_block_add_other_notifications' => LicenseService::getInstance()->mustBlockNotificationEdit(),
-            'must_block_edit_notification' => LicenseService::getInstance()->mustBlockNotificationEdit(),
             'platform_list' => $this->platformService->getEnabledPlatforms(),
         ]);
     }
@@ -390,8 +385,6 @@ final class NotificationController extends BaseController
 
         $this->view->view('notifications_table', [
             'notifications' => $notifications,
-            'must_block_add_other_notifications' => LicenseService::getInstance()->mustBlockNotificationEdit(),
-            'must_block_edit_notification' => LicenseService::getInstance()->mustBlockNotificationEdit(),
             'platform_list' => $this->platformService->getEnabledPlatforms(),
         ]);
     }

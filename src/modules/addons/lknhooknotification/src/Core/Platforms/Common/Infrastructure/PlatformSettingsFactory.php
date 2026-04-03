@@ -82,7 +82,6 @@ final class PlatformSettingsFactory
     {
         return new ModuleSettings(
             lkn_hn_config(Settings::LANGUAGE),
-            lkn_hn_config(Settings::LKN_LICENSE),
             lkn_hn_config(Settings::DEFAULT_CLIENT_NAME),
             lkn_hn_config(Settings::OBJECT_PAGES_TO_SHOW_REPORTS),
             lkn_hn_config(Settings::ENABLE_LOG),

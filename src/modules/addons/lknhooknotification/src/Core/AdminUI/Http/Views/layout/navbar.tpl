@@ -65,26 +65,16 @@
                                             {$subitem['title']}
                                         </li>
                                     {else}
-                                        {if isset($subitem['block']) && $subitem['block']}
-                                            <li>
-                                                <a href="https://www.amssoft.com.br">
-                                                    <i class="{$subitem['icon']}"></i>
-                                                    {$subitem['label']}
-                                                    <strong>{lkn_hn_lang text="(PRO)"}</strong>
-                                                </a>
-                                            </li>
-                                        {else}
-                                            <li
-                                                {if $lkn_hn.current_endpoint === $subitem['endpoint']}
-                                                    class="active"
-                                                {/if}
-                                            >
-                                                <a href="?module=lknhooknotification&page={$subitem['endpoint']}">
-                                                    <i class="{$subitem['icon']}"></i>
-                                                    {$subitem['label']}
-                                                </a>
-                                            </li>
-                                        {/if}
+                                        <li
+                                            {if $lkn_hn.current_endpoint === $subitem['endpoint']}
+                                                class="active"
+                                            {/if}
+                                        >
+                                            <a href="?module=lknhooknotification&page={$subitem['endpoint']}">
+                                                <i class="{$subitem['icon']}"></i>
+                                                {$subitem['label']}
+                                            </a>
+                                        </li>
                                     {/if}
                                 {/foreach}
                             </ul>

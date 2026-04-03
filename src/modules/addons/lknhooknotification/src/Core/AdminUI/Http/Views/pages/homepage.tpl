@@ -9,50 +9,6 @@
             {include "{$lkn_hn_layout_path}/components/v400_alert.tpl"}
         {/if}
 
-        <div class="col-md-12">
-            <div class="panel panel-default">
-                <div
-                    class="panel-body"
-                    style="display: flex; justify-content: space-between;"
-                >
-                    <div style="width: 100%; display: inline-flex; gap: 10px; align-content: center; align-items: center;">
-                        <p class="lead">
-                            <strong>{lkn_hn_lang text="Plan"}</strong>
-                        </p>
-
-                        <span
-                            class="label {($page_params.license_status === 'yes') ? 'label-success' : 'label-default'}"
-                            style="padding: 6px 10px;"
-                        >
-                            {if $page_params.license_status === 'no-license-found'}
-                                {lkn_hn_lang text="Free"}
-                            {elseif $page_params.license_status === 'no'}
-                                {lkn_hn_lang text="Free"}
-                            {elseif $page_params.license_status === 'yes'}
-                                {lkn_hn_lang text="Pro"}
-                            {else}
-                                {lkn_hn_lang text="Error"}
-                            {/if}
-                        </span>
-
-                        {if $page_params.license_status === 'unable-to-check-license'}
-                            <p>{lkn_hn_lang text="There was an error checking your license."}</p>
-
-                        {elseif $page_params.license_status === 'no'}
-                            <p>
-                                {lkn_hn_lang text="You are limited to 3 notifications per platform."}
-                            </p>
-                        {/if}
-                    </div>
-
-                    {if $page_params.license_status !== 'yes'}
-                        <div>
-                            {* Botão de upgrade removido: projeto open source AMS SOFT *}
-                        </div>
-                    {/if}
-                </div>
-            </div>
-        </div>
         <div
             class="col-md-3"
             style="min-width: 320px; width: 320px;"
