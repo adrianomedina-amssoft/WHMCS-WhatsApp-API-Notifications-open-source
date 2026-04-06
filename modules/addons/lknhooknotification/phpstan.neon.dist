@@ -1,0 +1,12 @@
+# yhttps://phpstan.org/config-reference
+parameters:
+    phpVersion: 80131
+    level: max
+    reportUnmatchedIgnoredErrors: false
+    paths:
+        - src/
+    excludePaths:
+        - src/modules/addons/lknhooknotification/src/Core/Notification/Application/built_in_notifications_recipes.php
+        - src/modules/addons/lknhooknotification/src/Core/AdminUI/Application/Services/license_func.php
+    scanFiles:
+        - docs/whmcs-common-stubs.php

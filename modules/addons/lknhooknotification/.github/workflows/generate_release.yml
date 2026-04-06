@@ -1,0 +1,44 @@
+name: Generate notifications release
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+env:
+  RELEASE_NAME: notifications
+  WORK_DIR: src
+
+jobs:
+  encode-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Composer dependencies
+        working-directory: ${{ env.WORK_DIR }}/modules/addons/lknhooknotification
+        run: composer install --ignore-platform-reqs --no-cache
+
+      - name: Generate release .zip
+        uses: thedoctor0/zip-release@master
+        with:
+          type: "zip"
+          path: "."  # Zipar os arquivos diretamente da pasta WORK_DIR
+          directory: ${{ env.WORK_DIR }}
+          filename: ${{ env.RELEASE_NAME }}.zip
+          exclusions: "*.git* .github"
+
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Finish release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: ${{env.WORK_DIR}}/${{ env.RELEASE_NAME }}.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit: "main"
+          tag: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release ${{ steps.tag_version.outputs.new_tag }}

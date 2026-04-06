@@ -1,0 +1,16 @@
+{
+    "require": {
+        "phan/phan": "^5.4"
+    },
+    "require-dev": {
+        "php-stubs/generator": "^0.8.3",
+        "squizlabs/php_codesniffer": "*",
+        "phpstan/phpstan": "^2.1",
+        "slevomat/coding-standard": "^8.15"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

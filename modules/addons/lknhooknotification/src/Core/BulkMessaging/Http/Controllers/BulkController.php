@@ -1,0 +1,432 @@
+<?php
+
+namespace Lkn\HookNotification\Core\BulkMessaging\Http\Controllers;
+
+use DateTime;
+use Lkn\HookNotification\Core\BulkMessaging\Application\Services\BulkService;
+use Lkn\HookNotification\Core\BulkMessaging\Domain\BulkNotification;
+use Lkn\HookNotification\Core\BulkMessaging\Domain\BulkStatus;
+use Lkn\HookNotification\Core\BulkMessaging\Domain\ClientProductStatus;
+use Lkn\HookNotification\Core\BulkMessaging\Domain\RecurrenceType;
+use Lkn\HookNotification\Core\BulkMessaging\Http\NewBulkRequest;
+use Lkn\HookNotification\Core\Notification\Application\Services\NotificationViewService;
+use Lkn\HookNotification\Core\Notification\Domain\NotificationTemplate;
+use Lkn\HookNotification\Core\Platforms\Common\Application\PlatformService;
+use Lkn\HookNotification\Core\Shared\Infrastructure\Config\Platforms;
+use Lkn\HookNotification\Core\Shared\Infrastructure\Interfaces\BaseController;
+use Lkn\HookNotification\Core\Shared\Infrastructure\View\View;
+use WHMCS\Database\Capsule;
+
+final class BulkController extends BaseController
+{
+    private readonly PlatformService $platformService;
+    private readonly BulkService $bulkService;
+    private readonly NotificationViewService $notificationViewService;
+
+    public function __construct(View $view)
+    {
+        parent::__construct($view);
+        $this->platformService         = new PlatformService();
+        $this->bulkService             = new BulkService();
+        $this->notificationViewService = new NotificationViewService($this->view);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // List
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function viewBulkMessageList(array $request): void
+    {
+        // Send now
+        if (isset($request['send-now']) && !empty($request['bulk-id'])) {
+            $bulkId = (int) $request['bulk-id'];
+            $result = $this->bulkService->sendNow($bulkId);
+
+            $this->view->alert(
+                $result ? 'success' : 'danger',
+                $result
+                    ? lkn_hn_lang('The bulk #[1] was set to start in the next cron.', [$bulkId])
+                    : lkn_hn_lang('The bulk #[1] was not.', [$bulkId])
+            );
+        }
+
+        // Pause
+        if (isset($request['pause-campaign']) && !empty($request['bulk-id'])) {
+            $result = $this->bulkService->pauseCampaign((int) $request['bulk-id']);
+            $this->view->alert($result->code === 'success' ? 'success' : 'warning',
+                $result->code === 'success'
+                    ? lkn_hn_lang('Campaign paused.')
+                    : ($result->errors['message'] ?? lkn_hn_lang('Could not pause campaign.')));
+        }
+
+        // Resume
+        if (isset($request['resume-campaign']) && !empty($request['bulk-id'])) {
+            $result = $this->bulkService->resumeCampaign((int) $request['bulk-id']);
+            $this->view->alert($result->code === 'success' ? 'success' : 'warning',
+                $result->code === 'success'
+                    ? lkn_hn_lang('Campaign resumed.')
+                    : ($result->errors['message'] ?? lkn_hn_lang('Could not resume campaign.')));
+        }
+
+        $bulks    = $this->bulkService->getBulks();
+        $calendar = $this->bulkService->getCalendar(7); // next 7 days inline
+
+        $this->view->view('pages/bulk_list', [
+            'bulks'    => $bulks,
+            'calendar' => $calendar,
+        ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Calendar
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function viewCalendar(array $request): void
+    {
+        $calendar = $this->bulkService->getCalendar(30);
+
+        $this->view->view('pages/campaign_calendar', ['calendar' => $calendar]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Create
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function viewNewBulkMessage(array $request): void
+    {
+        $title            = $request['title'] ?? '';
+        $platform         = $request['platform'] ?? '';
+        $dateToSend       = $request['date-to-send'] ?? '';
+        $description      = $request['description'] ?? '';
+        $template         = $request['template'] ?? '';
+        $maxConcurrency   = (int) ($request['max-concurrency'] ?? 25);
+        $recurrenceType   = $request['recurrence-type'] ?? 'once';
+        $endAt            = !empty($request['end-at']) ? new DateTime($request['end-at']) : null;
+        $recurrenceConfig = NewBulkRequest::parseRecurrenceConfigFromRequest($request);
+
+        // Status chosen by admin: active (default) or paused
+        $initialStatusRaw = $request['initial-status'] ?? 'active';
+        $initialStatus    = $initialStatusRaw === 'paused' ? BulkStatus::PAUSED : BulkStatus::ACTIVE;
+
+        $newBulkRequest = new NewBulkRequest(
+            status:           $initialStatus,
+            title:            $title,
+            descrip:          $description,
+            platform:         Platforms::tryFrom($platform),
+            startAt:          $dateToSend ? new DateTime($dateToSend) : null,
+            maxConcurrency:   $maxConcurrency,
+            filters:          NewBulkRequest::parseFiltersFromRequest($request),
+            template:         $template,
+            recurrenceType:   $recurrenceType,
+            recurrenceConfig: $recurrenceConfig,
+            endAt:            $endAt,
+        );
+
+        $clientOptions = null;
+
+        if (
+            isset($request['get-matched-clients'])
+            || isset($request['create-bulk'])
+            || isset($request['preview-schedule'])
+            || !empty($request['not-sending-clients'])
+        ) {
+            $clientOptions = $this->bulkService->getClientsByFilter(
+                $newBulkRequest->filters,
+                allClients: true,
+            );
+        }
+
+        // Preview next 5 scheduled dates when recurrence is set
+        $previewDates = [];
+
+        if ($recurrenceType !== 'once' && $newBulkRequest->startAt && !empty($recurrenceConfig)) {
+            $previewDates = $this->bulkService->previewNextRuns(
+                5,
+                $recurrenceType,
+                $recurrenceConfig,
+                $newBulkRequest->startAt,
+                $endAt
+            );
+        }
+
+        if (isset($request['create-bulk'])) {
+            if ($recurrenceType === 'once' && empty($clientOptions)) {
+                $this->view->alert(
+                    'warning',
+                    lkn_hn_lang('No client matched the filters. Please, adjust the filters to match at least 2 clients.')
+                );
+            } else {
+                $result = $this->bulkService->createBulk($newBulkRequest, $request);
+
+                if ($result->code === 'success') {
+                    header("Location: addonmodules.php?module=lknhooknotification&page=bulks/{$result->data['bulk_id']}");
+                    exit;
+                }
+
+                $this->view->alert('danger', $result->msg ?? lkn_hn_lang('Unable to create campaign.'));
+            }
+        }
+
+        $editingNotification = new BulkNotification();
+        $editingTemplate     = new NotificationTemplate(
+            $newBulkRequest->platform,
+            null,
+            $request['message-template'] ?? '',
+            []
+        );
+
+        $clientGroups = Capsule::table('tblclientgroups')
+            ->select(['id as value', 'groupname as label'])
+            ->get()
+            ->toArray();
+
+        $viewParams = [
+            'field_options' => [
+                'whmcs_client_lang'            => lkn_hn_get_language_locales_for_view(),
+                'whmcs_client_statuses'        => [
+                    ['label' => lkn_hn_lang('Active'),   'value' => 'Active'],
+                    ['label' => lkn_hn_lang('Inactive'), 'value' => 'Inactive'],
+                    ['label' => lkn_hn_lang('Closed'),   'value' => 'Closed'],
+                ],
+                'whmcs_client_countries'       => lkn_hn_get_client_countries_for_view(),
+                'whmcs_products'               => lkn_hn_get_products_for_view(),
+                'whmcs_client_product_status'  => ClientProductStatus::forView(),
+                'platform_options'             => $this->platformService->getEnabledPlatforms(standardOnly: true),
+                'client_options'               => $clientOptions,
+                'client_groups'                => array_map(fn($g) => (array)$g, $clientGroups),
+                'recurrence_types'             => RecurrenceType::forView(),
+            ],
+            'state'                  => $newBulkRequest,
+            'preview_dates'          => $previewDates,
+            'editing_notification'   => new BulkNotification(),
+            'template_editor_view'   => $this->notificationViewService->getTemplateEditorForPlatform(
+                $editingNotification,
+                $editingTemplate
+            ),
+        ];
+
+        $this->view->view('pages/edit_create_bulk', $viewParams);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // View / Edit
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function viewEditBulk(int $bulkId, array $request): void
+    {
+        $bulk = $this->bulkService->getBulk($bulkId);
+
+        // ── Save edits ────────────────────────────────────────────────────────
+        if (isset($request['save-bulk'])) {
+            $recurrenceType   = $request['recurrence-type'] ?? 'once';
+            $endAt            = !empty($request['end-at']) ? new DateTime($request['end-at']) : null;
+            $recurrenceConfig = NewBulkRequest::parseRecurrenceConfigFromRequest($request);
+
+            $updateRequest = new NewBulkRequest(
+                status:           $bulk->status,
+                title:            $request['title'] ?? $bulk->title,
+                descrip:          $request['description'] ?? $bulk->description,
+                platform:         $bulk->platform,                          // platform cannot change
+                startAt:          !empty($request['date-to-send']) ? new DateTime($request['date-to-send']) : $bulk->startAt,
+                maxConcurrency:   (int) ($request['max-concurrency'] ?? $bulk->maxConcurrency),
+                filters:          NewBulkRequest::parseFiltersFromRequest($request),
+                template:         $request['template'] ?? $bulk->template,
+                recurrenceType:   $recurrenceType,
+                recurrenceConfig: $recurrenceConfig,
+                endAt:            $endAt,
+            );
+
+            $result = $this->bulkService->updateCampaignFull($bulkId, $updateRequest, $request);
+
+            $this->view->alert(
+                $result->code === 'success' ? 'success' : 'danger',
+                $result->code === 'success'
+                    ? lkn_hn_lang('Campaign updated successfully.')
+                    : ($result->msg ?? $result->errors['message'] ?? $result->errors['exception'] ?? lkn_hn_lang('Could not update campaign.'))
+            );
+
+            $bulk = $this->bulkService->getBulk($bulkId); // refresh after save
+        }
+
+        if (
+            isset($request['bulk-status'])
+            && $bulk->status->value !== $request['bulk-status']
+        ) {
+            $result = $this->bulkService->updateBulkStatus(
+                $bulkId,
+                BulkStatus::from($request['bulk-status']),
+            );
+
+            $this->view->alert(
+                $result ? 'success' : 'warning',
+                $result
+                    ? lkn_hn_lang('The bulk status was changed.')
+                    : lkn_hn_lang('Could not change the status of the bulk.')
+            );
+
+            unset($_POST['bulk-status']);
+        }
+
+        if (!empty($request['resend-notification'])) {
+            $bulkMessageId = (int) $request['resend-notification'];
+            $result        = $this->bulkService->resendBulkMessage($bulkId, $bulkMessageId);
+
+            $this->view->alert(
+                $result->code === 'success' ? 'success' : 'warning',
+                $result->msg ?? '',
+                error: $result->errors['exception'] ?? null
+            );
+        }
+
+        $bulk = $this->bulkService->getBulk($bulkId);
+
+        // When form fields are submitted (save, preview-schedule), build state from request.
+        // Otherwise, build from stored bulk values.
+        $hasFormPost = isset($request['save-bulk']) || isset($request['preview-schedule']);
+
+        $newBulkRequest = new NewBulkRequest(
+            status:           $bulk->status,
+            title:            $hasFormPost ? ($request['title'] ?? $bulk->title) : $bulk->title,
+            descrip:          $hasFormPost ? ($request['description'] ?? $bulk->description) : $bulk->description,
+            platform:         $bulk->platform,
+            startAt:          $hasFormPost && !empty($request['date-to-send']) ? new DateTime($request['date-to-send']) : $bulk->startAt,
+            maxConcurrency:   $hasFormPost ? (int) ($request['max-concurrency'] ?? $bulk->maxConcurrency) : $bulk->maxConcurrency,
+            filters:          $hasFormPost ? NewBulkRequest::parseFiltersFromRequest($request) : $bulk->filters,
+            template:         $hasFormPost ? ($request['template'] ?? $bulk->template) : $bulk->template,
+            recurrenceType:   $hasFormPost ? ($request['recurrence-type'] ?? 'once') : $bulk->recurrenceType,
+            recurrenceConfig: $hasFormPost ? NewBulkRequest::parseRecurrenceConfigFromRequest($request) : $bulk->recurrenceConfig,
+            endAt:            $hasFormPost ? (!empty($request['end-at']) ? new DateTime($request['end-at']) : null) : $bulk->endAt,
+        );
+
+        $clientOptions         = $this->bulkService->getClientsByFilter($newBulkRequest->filters);
+        $bulkNotificationsList = $this->bulkService->getBulkReportForView($bulk->id);
+        $campaignRuns          = $this->bulkService->getCampaignRuns($bulk->id);
+
+        $editingNotification = new BulkNotification();
+        $editingTemplate     = new NotificationTemplate(
+            $newBulkRequest->platform,
+            null,
+            $bulk->template ?? '',
+            $bulk->platformPayload,
+        );
+
+        $clientGroups = Capsule::table('tblclientgroups')
+            ->select(['id as value', 'groupname as label'])
+            ->get()
+            ->toArray();
+
+        $viewParams = [
+            'mode'                   => 'edit',
+            'field_options'          => [
+                'bulk_message_status'          => BulkStatus::forView(),
+                'whmcs_client_lang'            => lkn_hn_get_language_locales_for_view(),
+                'whmcs_client_statuses'        => [
+                    ['label' => lkn_hn_lang('Active'),   'value' => 'active'],
+                    ['label' => lkn_hn_lang('Inactive'), 'value' => 'inactive'],
+                    ['label' => lkn_hn_lang('Closed'),   'value' => 'closed'],
+                ],
+                'whmcs_client_countries'       => lkn_hn_get_client_countries_for_view(),
+                'whmcs_products'               => lkn_hn_get_products_for_view(),
+                'whmcs_client_product_status'  => ClientProductStatus::forView(),
+                'platform_options'             => $this->platformService->getEnabledPlatforms(standardOnly: true),
+                'client_options'               => $clientOptions,
+                'client_groups'                => array_map(fn($g) => (array)$g, $clientGroups),
+                'recurrence_types'             => RecurrenceType::forView(),
+            ],
+            'state'                  => $newBulkRequest,
+            'bulk'                   => $bulk,
+            'preview_dates'          => (isset($request['preview-schedule']) && $newBulkRequest->recurrenceType !== 'once' && $newBulkRequest->startAt && !empty($newBulkRequest->recurrenceConfig))
+                ? $this->bulkService->previewNextRuns(5, $newBulkRequest->recurrenceType, $newBulkRequest->recurrenceConfig, $newBulkRequest->startAt, $newBulkRequest->endAt)
+                : [],
+            'bulk_notifications_list' => $bulkNotificationsList,
+            'campaign_runs'          => $campaignRuns,
+            'editing_notification'   => new BulkNotification(),
+            'template_editor_view'   => $this->notificationViewService->getTemplateEditorForPlatform(
+                $editingNotification,
+                $editingTemplate,
+                true,
+            ),
+        ];
+
+        $this->view->view('pages/edit_create_bulk', $viewParams);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Duplicate
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function handleDuplicateCampaign(array $request): void
+    {
+        $bulkId = (int) ($request['bulk-id'] ?? 0);
+        $result = $this->bulkService->duplicateCampaign($bulkId);
+
+        if ($result->code === 'success') {
+            header("Location: addonmodules.php?module=lknhooknotification&page=bulks/{$result->data['bulk_id']}&duplicated=1");
+            exit;
+        }
+
+        $this->view->alert('danger', $result->errors['message'] ?? $result->errors['exception'] ?? lkn_hn_lang('Unable to duplicate campaign.'));
+
+        $this->view->view('pages/bulk_list', ['bulks' => $this->bulkService->getBulks()]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Delete
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function handleDeleteCampaign(array $request): void
+    {
+        $bulkId = (int) ($request['bulk-id'] ?? 0);
+        $result = $this->bulkService->deleteCampaign($bulkId);
+
+        $this->view->alert(
+            $result->code === 'success' ? 'success' : 'danger',
+            $result->code === 'success'
+                ? lkn_hn_lang('Campaign #[1] deleted.', [$bulkId])
+                : ($result->errors['message'] ?? lkn_hn_lang('Could not delete campaign.'))
+        );
+
+        $bulks    = $this->bulkService->getBulks();
+        $calendar = $this->bulkService->getCalendar(7);
+        $this->view->view('pages/bulk_list', ['bulks' => $bulks, 'calendar' => $calendar]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Reschedule (from calendar)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function handleRescheduleCampaign(array $request): void
+    {
+        $bulkId   = (int) ($request['bulk-id'] ?? 0);
+        $newRunAt = $request['new-run-at'] ?? '';
+
+        if ($bulkId && !empty($newRunAt)) {
+            $result = $this->bulkService->rescheduleCampaign($bulkId, new DateTime($newRunAt));
+
+            $this->view->alert(
+                $result->code === 'success' ? 'success' : 'danger',
+                $result->code === 'success'
+                    ? lkn_hn_lang('Campaign #[1] rescheduled to [2].', [$bulkId, (new DateTime($newRunAt))->format('d/m/Y H:i')])
+                    : ($result->errors['message'] ?? lkn_hn_lang('Could not reschedule campaign.'))
+            );
+        }
+
+        $calendar = $this->bulkService->getCalendar(30);
+        $this->view->view('pages/campaign_calendar', ['calendar' => $calendar]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // History (per campaign runs)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function viewCampaignHistory(int $bulkId, array $request): void
+    {
+        $bulk = $this->bulkService->getBulk($bulkId);
+        $runs = $this->bulkService->getCampaignRuns($bulkId);
+
+        $this->view->view('pages/campaign_history', [
+            'bulk' => $bulk,
+            'runs' => $runs,
+        ]);
+    }
+}
