@@ -22,13 +22,24 @@ final class NotificationReportController extends BaseController
         $currentPage    = $request['pageN'] ?? 1;
         $reportsPerPage = 30;
 
-        $reportsForView = $this->notificationReportService->getReportsForView($reportsPerPage, $currentPage);
+        $filters = [
+            'status'       => $request['filter_status'] ?? '',
+            'platform'     => $request['filter_platform'] ?? '',
+            'notification' => $request['filter_notification'] ?? '',
+            'date_from'    => $request['filter_date_from'] ?? '',
+            'date_to'      => $request['filter_date_to'] ?? '',
+            'client'       => $request['filter_client'] ?? '',
+        ];
+
+        $reportsForView = $this->notificationReportService->getReportsForView($reportsPerPage, $currentPage, $filters);
 
         $viewParams = [
-            'reports' => $reportsForView['reports'],
-            'current_page' => $currentPage,
+            'reports'          => $reportsForView['reports'],
+            'current_page'     => $currentPage,
             'reports_per_page' => $reportsPerPage,
-            'total_reports' => $reportsForView['totalReports'],
+            'total_reports'    => $reportsForView['totalReports'],
+            'filters'          => $filters,
+            'notifications'    => $this->notificationReportService->getDistinctNotifications(),
         ];
 
         $this->view->view('pages/reports', $viewParams);

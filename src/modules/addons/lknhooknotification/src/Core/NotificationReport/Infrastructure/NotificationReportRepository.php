@@ -11,20 +11,60 @@ use Lkn\HookNotification\Core\Shared\Infrastructure\Repository\BaseRepository;
 
 final class NotificationReportRepository extends BaseRepository
 {
-    public function paginate(int $offset, int $limit)
+    public function paginate(int $offset, int $limit, array $filters = [])
     {
-        $reports = $this->query->table('mod_lkn_hook_notification_reports')
+        $baseQuery = $this->query->table('mod_lkn_hook_notification_reports');
+
+        if (!empty($filters['status'])) {
+            $baseQuery->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['platform'])) {
+            $baseQuery->where('platform', $filters['platform']);
+        }
+
+        if (!empty($filters['notification'])) {
+            $baseQuery->where('notification', $filters['notification']);
+        }
+
+        if (!empty($filters['date_from'])) {
+            $baseQuery->where('created_at', '>=', $filters['date_from'] . ' 00:00:00');
+        }
+
+        if (!empty($filters['date_to'])) {
+            $baseQuery->where('created_at', '<=', $filters['date_to'] . ' 23:59:59');
+        }
+
+        if (!empty($filters['client'])) {
+            $client = $filters['client'];
+            $baseQuery->where(function ($q) use ($client) {
+                $q->where('client_id', 'like', '%' . $client . '%')
+                    ->orWhere('target', 'like', '%' . $client . '%');
+            });
+        }
+
+        $totalReports = (clone $baseQuery)->count();
+
+        $reports = $baseQuery
             ->orderBy('created_at', 'desc')
             ->offset($offset)
             ->limit($limit)
             ->get();
 
-        $totalReports = $this->query->table('mod_lkn_hook_notification_reports')->count();
-
         return [
             'reports' => $reports->toArray(),
-            'totalReports' =>  $totalReports,
+            'totalReports' => $totalReports,
         ];
+    }
+
+    public function getDistinctNotifications(): array
+    {
+        return $this->query->table('mod_lkn_hook_notification_reports')
+            ->select('notification')
+            ->distinct()
+            ->orderBy('notification', 'asc')
+            ->pluck('notification')
+            ->toArray();
     }
 
     public function insertReport(

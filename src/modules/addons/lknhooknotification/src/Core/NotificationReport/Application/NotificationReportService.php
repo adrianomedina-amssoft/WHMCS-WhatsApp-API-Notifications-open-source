@@ -25,11 +25,16 @@ final class NotificationReportService
      *
      * @return NotificationReport[]
      */
-    public function getReportsForView(int $reportsPerPage, int $currentPage): array
+    public function getDistinctNotifications(): array
+    {
+        return $this->notificationReportRepository->getDistinctNotifications();
+    }
+
+    public function getReportsForView(int $reportsPerPage, int $currentPage, array $filters = []): array
     {
         $offset = ($currentPage - 1) * $reportsPerPage;
 
-        $repoResponse = $this->notificationReportRepository->paginate($offset, $reportsPerPage);
+        $repoResponse = $this->notificationReportRepository->paginate($offset, $reportsPerPage, $filters);
 
         $reports = array_map(function ($row) {
             return new NotificationReport(
