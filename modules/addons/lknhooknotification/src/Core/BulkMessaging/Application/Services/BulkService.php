@@ -327,6 +327,22 @@ final class BulkService
                 $nextRunAtDt->setTime((int) ($parts[0] ?? 0), (int) ($parts[1] ?? 0), 0);
             }
 
+            // If the computed next_run_at is in the past (time-override mismatch or timezone
+            // difference between browser input and server clock), advance to the next valid
+            // occurrence so the campaign never fires immediately after creation.
+            if ($isRecurring && $nextRunAtDt <= new DateTime()) {
+                $advanced = $this->scheduler->calculateNextRun(
+                    $newBulkRequest->recurrenceType,
+                    $newBulkRequest->recurrenceConfig ?? [],
+                    $nextRunAtDt,
+                    $newBulkRequest->endAt
+                );
+
+                if ($advanced !== null) {
+                    $nextRunAtDt = $advanced;
+                }
+            }
+
             $nextRunAt = $nextRunAtDt->format('Y-m-d H:i:s');
         }
 
