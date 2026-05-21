@@ -1,0 +1,23 @@
+# Documentação interna para IA (Claude Code) — não enviar ao repositório
+CLAUDE.md
+
+# Arquivos de backup criados localmente durante edição
+*-php-bkp
+*-php-bak
+*.bkp
+*.bak
+
+# Diretórios gerados em runtime (PDFs e imagens de faturas)
+**/Core/temp/invoices_pdf/
+**/Core/temp/invoices_img/
+**/temp/invoices_pdf/
+**/temp/invoices_img/
+
+# Editor / SO
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
