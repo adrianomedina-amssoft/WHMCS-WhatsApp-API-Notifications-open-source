@@ -110,21 +110,17 @@ final class BulkDispatcher extends Singleton
                 queueId: $queuedBulkMessage->id,
             );
 
+            if (is_null($queuedBulkMessage->id)) {
+                continue;
+            }
+
             if ($platformResponse instanceof Result) {
-                if (!is_null($queuedBulkMessage->id)) {
-                    $this->bulkMessageRepositoryService->updateBulkMessageStatus(
-                        $queuedBulkMessage->id,
-                        QueuedNotificationStatus::ERROR,
-                    );
+                $this->bulkMessageRepositoryService->updateBulkMessageStatus(
+                    $queuedBulkMessage->id,
+                    QueuedNotificationStatus::ERROR,
+                );
 
-                    $totalWaitingBulkMessages--;
-
-                    $this->bulkMessageRepositoryService->updateBulkMessageProgress(
-                        $bulk->id,
-                        $totalWaitingBulkMessages,
-                        $totalBulkMessages
-                    );
-                }
+                $totalWaitingBulkMessages--;
 
                 continue;
             }
@@ -133,23 +129,19 @@ final class BulkDispatcher extends Singleton
                 ? QueuedNotificationStatus::SENT
                 : QueuedNotificationStatus::ERROR;
 
-            if (is_null($queuedBulkMessage->id)) {
-                continue;
-            }
-
             $this->bulkMessageRepositoryService->updateBulkMessageStatus(
                 $queuedBulkMessage->id,
                 $newStatus
             );
 
             $totalWaitingBulkMessages--;
-
-            $this->bulkMessageRepositoryService->updateBulkMessageProgress(
-                $bulk->id,
-                $totalWaitingBulkMessages,
-                $totalBulkMessages
-            );
         }
+
+        $this->bulkMessageRepositoryService->updateBulkMessageProgress(
+            $bulk->id,
+            $totalWaitingBulkMessages,
+            $totalBulkMessages
+        );
 
         // After sending this batch, check if the run is now complete
         $updatedBulk = $this->bulkMessageRepositoryService->getBulk($bulk->id);
@@ -221,18 +213,15 @@ final class BulkDispatcher extends Singleton
     private function finalizeOnceRun(Bulk $bulk): void
     {
         try {
-            $runs = $this->bulkRepository->getCampaignRuns($bulk->id);
+            $openRun = $this->bulkRepository->getOpenCampaignRun($bulk->id);
 
-            foreach ($runs as $run) {
-                if ($run->status === 'in_progress') {
-                    $clientsReached = $this->notificationQueueService->countQueuedNotifications(
-                        $bulk->id,
-                        status: QueuedNotificationStatus::SENT,
-                    );
+            if ($openRun) {
+                $clientsReached = $this->notificationQueueService->countQueuedNotifications(
+                    $bulk->id,
+                    status: QueuedNotificationStatus::SENT,
+                );
 
-                    $this->bulkRepository->completeCampaignRun($run->id, $clientsReached);
-                    break;
-                }
+                $this->bulkRepository->completeCampaignRun($openRun->id, $clientsReached);
             }
         } catch (Throwable $th) {
             lkn_hn_log('Once campaign finalize error', ['bulk_id' => $bulk->id], ['error' => $th->__toString()]);
@@ -245,17 +234,7 @@ final class BulkDispatcher extends Singleton
     private function finalizeRecurringRun(Bulk $bulk): void
     {
         try {
-            // Close the most recent open run record
-            $runs = $this->bulkRepository->getCampaignRuns($bulk->id);
-
-            $openRun = null;
-
-            foreach ($runs as $run) {
-                if ($run->status === 'in_progress') {
-                    $openRun = $run;
-                    break;
-                }
-            }
+            $openRun = $this->bulkRepository->getOpenCampaignRun($bulk->id);
 
             if ($openRun) {
                 $clientsReached = $this->notificationQueueService->countQueuedNotifications(

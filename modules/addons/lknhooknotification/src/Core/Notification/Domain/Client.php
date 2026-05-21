@@ -10,7 +10,6 @@ use WHMCS\Database\Capsule;
 
 final class Client
 {
-    // FIX: Changed properties to accept strings
     public ?string $wpPhoneNumber = null;
     public readonly ?string $whmcsPhoneNumber;
     private readonly ClientRepository $clientRepository;
@@ -29,22 +28,18 @@ final class Client
         $this->clientRepository = new ClientRepository();
 
         $whmcsPhoneNumber       = $this->clientRepository->getWhmcsPhoneNumber($this->id);
-        // FIX: Removed (int) cast. Kept as string after regex.
         $this->whmcsPhoneNumber = $whmcsPhoneNumber ? preg_replace('/[^0-9+]/', '', $whmcsPhoneNumber) : null;
-        
+
         $countryCode            = $this->clientRepository->getClientCountry($this->id);
 
         $this->countryCode = $countryCode;
         $this->locale      = $this->clientRepository->getClientLang($this->id)['locale'];
     }
 
-    // FIX: Return type is now false|string
     public function validateWpPhoneNumber(int $customFieldId): false|string
     {
-        // FIX: Removed (int) cast when fetching the field. Keep it as string.
         $wpPhoneNumberRaw = $this->clientRepository->getCustomField($this->id, $customFieldId);
-        
-        // FIX: Removed (int) cast.
+
         $wpPhoneNumber = $wpPhoneNumberRaw ? preg_replace('/[^0-9+]/', '', strval($wpPhoneNumberRaw)) : null;
 
         if (!$wpPhoneNumber) {
@@ -59,7 +54,6 @@ final class Client
         return $this->wpPhoneNumber;
     }
 
-    // FIX: Return type is now false|string
     public function validateWhmcsPhoneNumber(): false|string
     {
         if (
@@ -72,7 +66,6 @@ final class Client
         return $this->whmcsPhoneNumber;
     }
 
-    // FIX: Return type is now false|string
     public function getWpPhoneNumberOrWhmcsPhoneNumber(?int $platformSpecificWpCustomFieldId): false|string
     {
         /** @var null|int $globalWpCustomFieldId */
@@ -90,9 +83,9 @@ final class Client
     }
 
     /**
-     * Valides the phone number against the client country.
+     * Validates the phone number against the client country.
      *
-     * @param  string $phoneNumber // FIX: Accepts string instead of int
+     * @param  string $phoneNumber
      *
      * @return boolean
      */
@@ -133,7 +126,7 @@ final class Client
             $query = $query->where('relid', $clientId);
         }
 
-        $customFieldValue = $query = $query->where('fieldid', $customFieldId)
+        $customFieldValue = $query->where('fieldid', $customFieldId)
             ->first('value')
             ->value;
 

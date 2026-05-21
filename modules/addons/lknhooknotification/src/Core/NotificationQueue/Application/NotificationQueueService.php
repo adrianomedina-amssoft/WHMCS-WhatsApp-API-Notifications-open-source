@@ -31,7 +31,7 @@ final class NotificationQueueService
         foreach ($clientIds as $clientId) {
             $toAdd[] = [
                 'bulk_id' => $bulkId,
-                'status' => 'waiting',
+                'status' => QueuedNotificationStatus::WAITING->value,
                 'notif_code' => '',
                 'client_id' => $clientId,
             ];
@@ -49,16 +49,16 @@ final class NotificationQueueService
         bool $withClient = false,
         bool $withReport = false,
     ) {
-        $rawQueuedNotifcations     = $this->notificationQueueRepository->getQueuedNotifications(
+        $rawQueuedNotifications    = $this->notificationQueueRepository->getQueuedNotifications(
             $bulkId,
-            $status->value,
+            $status?->value,
             limit: $limit,
             withClient: $withClient,
             withReport: $withReport
         );
         $parsedQueuedNotifications = [];
 
-        foreach ($rawQueuedNotifcations as $raw) {
+        foreach ($rawQueuedNotifications as $raw) {
             $parsedQueuedNotifications[] = new QueuedNotification(
                 $raw->id,
                 $raw->bulk_id,
@@ -90,7 +90,7 @@ final class NotificationQueueService
     ): int {
         return $this->notificationQueueRepository->getQueuedNotifications(
             $bulkId,
-            $status->value,
+            $status?->value,
             returnCount: true
         );
     }

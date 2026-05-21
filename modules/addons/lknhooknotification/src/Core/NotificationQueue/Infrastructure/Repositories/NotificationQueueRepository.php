@@ -8,7 +8,7 @@ use Lkn\HookNotification\Core\Shared\Infrastructure\Repository\BaseRepository;
 final class NotificationQueueRepository extends BaseRepository
 {
     /**
-     * @param  integer|null $builkId
+     * @param  integer|null $bulkId
      * @param  string|null  $status
      * @param  string|null  $notifCode
      * @param  integer|null $clientId
@@ -20,7 +20,7 @@ final class NotificationQueueRepository extends BaseRepository
      * @return integer|\Illuminate\Support\Collection
      */
     public function getQueuedNotifications(
-        ?int $builkId = null,
+        ?int $bulkId = null,
         ?string $status = null,
         ?string $notifCode = null,
         ?int $clientId = null,
@@ -31,8 +31,8 @@ final class NotificationQueueRepository extends BaseRepository
     ): int|array {
         $query = $this->query->table('mod_lkn_hook_notification_notif_queue')->limit($limit);
 
-        if ($builkId) {
-            $query = $query->where('mod_lkn_hook_notification_notif_queue.bulk_id', $builkId);
+        if ($bulkId) {
+            $query = $query->where('mod_lkn_hook_notification_notif_queue.bulk_id', $bulkId);
         }
 
         if ($status) {
@@ -91,7 +91,7 @@ final class NotificationQueueRepository extends BaseRepository
                 );
         }
 
-        if ($returnCount) {
+        if ($returnCount === true) {
             return $query->count();
         }
 

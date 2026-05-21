@@ -14,14 +14,8 @@ abstract class BaseApiClient
     ): ApiResponse {
         $requestUrl = "$baseUrl/$endpoint";
 
-        $queryParamsStr = '';
-
-        if (count($queryParams) > 0) {
-            foreach ($queryParams as $key => $value) {
-                $queryParamsStr .= "$key=$value&";
-            }
-
-            $requestUrl .= '?' . rtrim($queryParamsStr, '&');
+        if (!empty($queryParams)) {
+            $requestUrl .= '?' . http_build_query($queryParams);
         }
 
         $curlHandle = curl_init();

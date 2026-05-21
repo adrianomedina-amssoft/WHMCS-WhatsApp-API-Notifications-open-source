@@ -89,7 +89,7 @@ function define_i18n_lang()
     $language = lkn_hn_config(Settings::LANGUAGE);
 
     if (!$language) {
-        $language = $language = Capsule::table('tblconfiguration')
+        $language = Capsule::table('tblconfiguration')
             ->where('setting', 'Language')
             ->first('value')->value;
     }
@@ -128,9 +128,7 @@ function lkn_hn_lang(array|string $text, array|Smarty_Internal_Template $params 
     }
 
     foreach ($params as $key => $value) {
-        $key_       = $key;
-        $key_      += 1;
-        $translated = str_replace("[{$key_}]", $value, $translated);
+        $translated = str_replace('[' . ($key + 1) . ']', $value, $translated);
     }
 
     return $translated;
@@ -163,7 +161,13 @@ function lkn_hn_log(
 
 function lkn_hn_config(Settings $setting)
 {
-    if (!Capsule::schema()->hasTable('mod_lkn_hook_notification_configs')) {
+    static $tableExists = null;
+
+    if ($tableExists === null) {
+        $tableExists = Capsule::schema()->hasTable('mod_lkn_hook_notification_configs');
+    }
+
+    if (!$tableExists) {
         return null;
     }
 
@@ -226,7 +230,7 @@ function lkn_hn_config_set(Platforms $platform, Settings $setting, $value)
     lkn_hn_log(
         'Upsert setting',
         ['setting' => $setting->name, 'value' => $value],
-        ['result' > $result]
+        ['result' => $result]
     );
 }
 
@@ -295,12 +299,12 @@ function lkn_hn_remove_phone_number(string $value): string
     return preg_replace('/[^0-9]/', '', $value);
 }
 
-function lkn_hn_safe_json_encode(array $json, int $additionlFlags = 0)
+function lkn_hn_safe_json_encode(array $json, int $additionalFlags = 0)
 {
     return json_encode(
         $json,
         JSON_UNESCAPED_UNICODE
-        | JSON_UNESCAPED_SLASHES | $additionlFlags
+        | JSON_UNESCAPED_SLASHES | $additionalFlags
     );
 }
 

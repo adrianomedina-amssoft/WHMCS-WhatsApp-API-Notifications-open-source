@@ -58,24 +58,15 @@ final class BulkRepository extends BaseRepository
      */
     public function isAnyInProgress(): bool
     {
-        return $this->query
-            ->table('mod_lkn_hook_notification_bulks')
-            ->where('status', '=', BulkStatus::IN_PROGRESS->value)
-            ->where('progress', '!=', 100)
-            ->exists();
+        return !empty($this->getInProgressBulks());
     }
 
-    /**
-     * @return array
-     */
-    public function getBulk(int $bulkId): array
+    public function getBulk(int $bulkId): ?object
     {
-        $result = $this->query
-                ->table('mod_lkn_hook_notification_bulks')
-                ->where('id', $bulkId)
-                ->first();
-
-        return (array) $result;
+        return $this->query
+            ->table('mod_lkn_hook_notification_bulks')
+            ->where('id', $bulkId)
+            ->first();
     }
 
     public function getBulks(): array
@@ -147,11 +138,11 @@ final class BulkRepository extends BaseRepository
 
         $query = $this->query->table('mod_lkn_hook_notification_bulks')->where('id', $bulkId);
 
-        if ($status) {
+        if ($status !== null) {
             $updateArray['status'] = $status;
         }
 
-        if ($completedAt) {
+        if ($completedAt !== null) {
             $updateArray['completed_at'] = $completedAt;
         }
 
@@ -241,6 +232,16 @@ final class BulkRepository extends BaseRepository
             ->orderBy('started_at', 'desc')
             ->get()
             ->toArray();
+    }
+
+    public function getOpenCampaignRun(int $campaignId): ?object
+    {
+        return $this->query
+            ->table('mod_lkn_hook_notification_campaign_runs')
+            ->where('campaign_id', $campaignId)
+            ->where('status', 'in_progress')
+            ->orderBy('started_at', 'desc')
+            ->first();
     }
 
     /**

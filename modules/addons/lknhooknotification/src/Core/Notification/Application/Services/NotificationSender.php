@@ -49,7 +49,7 @@ final class NotificationSender extends Singleton {
                 ],
             );
 
-            $isCronNotification = in_array($notification->hook, [Hooks::DAILY_CRON_JOB]);
+            $isCronNotification = $notification->hook === Hooks::DAILY_CRON_JOB;
 
             if (
                 $isCronNotification
@@ -145,8 +145,8 @@ final class NotificationSender extends Singleton {
         );
 
         if ($platformResponse->status === NotificationReportStatus::SENT) {
-            foreach ($this->notificationObservers as $obsever) {
-                $obsever->onNotificationSent($notification, $template, $platform);
+            foreach ($this->notificationObservers as $observer) {
+                $observer->onNotificationSent($notification, $template, $platform);
             }
         }
 

@@ -3,9 +3,9 @@
 namespace Lkn\HookNotification\Core\BulkMessaging\Application\Services;
 
 use DateTime;
-use DateTimeZone;
 use Lkn\HookNotification\Core\BulkMessaging\Domain\Bulk;
 use Lkn\HookNotification\Core\BulkMessaging\Domain\BulkStatus;
+use Lkn\HookNotification\Core\BulkMessaging\Domain\RecurrenceType;
 use Lkn\HookNotification\Core\BulkMessaging\Http\NewBulkRequest;
 use Lkn\HookNotification\Core\BulkMessaging\Infrastructure\BulkRepository;
 use Lkn\HookNotification\Core\NotificationQueue\Application\NotificationQueueService;
@@ -32,11 +32,11 @@ final class BulkService
     }
 
     public function updateBulkMessageStatus(
-        int $queuedNotificationid,
+        int $queuedNotificationId,
         QueuedNotificationStatus $status
     ): bool {
         return $this->notificationQueueService->updateQueuedNotificationStatus(
-            $queuedNotificationid,
+            $queuedNotificationId,
             $status
         );
     }
@@ -249,7 +249,7 @@ final class BulkService
             return null;
         }
 
-        return $this->hydrateBulkFromArray($rawBulk);
+        return $this->hydrateBulk($rawBulk);
     }
 
     /**
@@ -272,29 +272,22 @@ final class BulkService
         NewBulkRequest $newBulkRequest,
         array $rawFormPost
     ): Result {
-        $template        = null;
-        $platformPayload = null;
+        [$template, $platformPayload, $wpError] = $this->resolveTemplateAndPayload(
+            $newBulkRequest->platform,
+            $newBulkRequest->template,
+            $rawFormPost
+        );
 
-        if ($newBulkRequest->platform === Platforms::WHATSAPP) {
-            $platformPayloadResult = $this->notificationService->handleWhatsAppPlatformPayloadForm($rawFormPost);
+        if ($wpError) {
+            lkn_hn_log(
+                'bulk: parse meta whatsapp template',
+                ['new_bulk_request' => $newBulkRequest, 'raw_form_post' => $rawFormPost],
+            );
 
-            if (!$platformPayloadResult->data) {
-                lkn_hn_log(
-                    'bulk: parse meta whatsapp template',
-                    ['new_bulk_request' => $newBulkRequest, 'raw_form_post' => $rawFormPost],
-                    ['platform_payload_result' => $platformPayloadResult->toArray()]
-                );
-
-                return lkn_hn_result('error', msg: lkn_hn_lang('Unable to parse Meta WhatsApp template.'));
-            }
-
-            $template        = $platformPayloadResult->data['template'];
-            $platformPayload = $platformPayloadResult->data['platformPayload'];
-        } else {
-            $template = $newBulkRequest->template;
+            return $wpError;
         }
 
-        $isRecurring      = $newBulkRequest->recurrenceType !== 'once';
+        $isRecurring      = $newBulkRequest->recurrenceType !== RecurrenceType::ONCE->value;
         $recurrenceConfig = $newBulkRequest->recurrenceConfig
             ? lkn_hn_safe_json_encode($newBulkRequest->recurrenceConfig)
             : null;
@@ -397,20 +390,14 @@ final class BulkService
                 return lkn_hn_result('error', errors: ['message' => "Campaign not found: {$bulkId}"]);
             }
 
-            $template        = null;
-            $platformPayload = null;
+            [$template, $platformPayload, $wpError] = $this->resolveTemplateAndPayload(
+                $req->platform,
+                $req->template,
+                $rawPost
+            );
 
-            if ($req->platform === Platforms::WHATSAPP) {
-                $platformPayloadResult = $this->notificationService->handleWhatsAppPlatformPayloadForm($rawPost);
-
-                if (!$platformPayloadResult->data) {
-                    return lkn_hn_result('error', msg: lkn_hn_lang('Unable to parse Meta WhatsApp template.'));
-                }
-
-                $template        = $platformPayloadResult->data['template'];
-                $platformPayload = $platformPayloadResult->data['platformPayload'];
-            } else {
-                $template = $req->template;
+            if ($wpError) {
+                return $wpError;
             }
 
             $recurrenceConfig = $req->recurrenceConfig
@@ -703,37 +690,32 @@ final class BulkService
             maxConcurrency:   $rawBulk->max_concurrency,
             filters:          json_decode($rawBulk->filters, true) ?? [],
             progress:         $rawBulk->progress,
-            createdAt:        new DateTime($rawBulk->created_at, new DateTimeZone('America/Sao_Paulo')),
+            createdAt:        new DateTime($rawBulk->created_at),
             completedAt:      $rawBulk->completed_at ? new DateTime($rawBulk->completed_at) : null,
             template:         $rawBulk->template,
             platformPayload:  json_decode($rawBulk->platform_payload ?? 'null', true),
-            recurrenceType:   $rawBulk->recurrence_type ?? 'once',
+            recurrenceType:   $rawBulk->recurrence_type ?? RecurrenceType::ONCE->value,
             recurrenceConfig: json_decode($rawBulk->recurrence_config ?? 'null', true),
             nextRunAt:        !empty($rawBulk->next_run_at) ? new DateTime($rawBulk->next_run_at) : null,
             endAt:            !empty($rawBulk->end_at) ? new DateTime($rawBulk->end_at) : null,
         );
     }
 
-    private function hydrateBulkFromArray(array $rawBulk): Bulk
+    /**
+     * @return array{0: string|null, 1: array|null, 2: Result|null}
+     */
+    private function resolveTemplateAndPayload(?Platforms $platform, ?string $rawTemplate, array $rawPost): array
     {
-        return new Bulk(
-            id:               $rawBulk['id'],
-            status:           BulkStatus::from($rawBulk['status']),
-            title:            $rawBulk['title'],
-            description:      $rawBulk['description'] ?? null,
-            platform:         Platforms::from($rawBulk['platform']),
-            startAt:          new DateTime($rawBulk['start_at']),
-            maxConcurrency:   $rawBulk['max_concurrency'],
-            filters:          json_decode($rawBulk['filters'], true) ?? [],
-            progress:         $rawBulk['progress'],
-            createdAt:        new DateTime($rawBulk['created_at']),
-            completedAt:      !empty($rawBulk['completed_at']) ? new DateTime($rawBulk['completed_at']) : null,
-            template:         $rawBulk['template'],
-            platformPayload:  json_decode($rawBulk['platform_payload'] ?? 'null', true),
-            recurrenceType:   $rawBulk['recurrence_type'] ?? 'once',
-            recurrenceConfig: json_decode($rawBulk['recurrence_config'] ?? 'null', true),
-            nextRunAt:        !empty($rawBulk['next_run_at']) ? new DateTime($rawBulk['next_run_at']) : null,
-            endAt:            !empty($rawBulk['end_at']) ? new DateTime($rawBulk['end_at']) : null,
-        );
+        if ($platform !== Platforms::WHATSAPP) {
+            return [$rawTemplate, null, null];
+        }
+
+        $result = $this->notificationService->handleWhatsAppPlatformPayloadForm($rawPost);
+
+        if (!$result->data) {
+            return [null, null, lkn_hn_result('error', msg: lkn_hn_lang('Unable to parse Meta WhatsApp template.'))];
+        }
+
+        return [$result->data['template'], $result->data['platformPayload'], null];
     }
 }

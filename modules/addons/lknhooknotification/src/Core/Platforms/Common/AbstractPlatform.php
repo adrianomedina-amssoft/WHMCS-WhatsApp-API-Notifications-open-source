@@ -22,7 +22,7 @@ abstract class AbstractPlatform
         NotificationTemplate $template,
     ): PlatformNotificationSendResult;
 
-    protected function getPhoneNumber(AbstractNotification $notification): false|int
+    protected function getPhoneNumber(AbstractNotification $notification): false|string
     {
         if ($notification->code === 'DefaultTICKETADMINREPLY') {
             $ticketWpCustomFieldId = lkn_hn_config(Settings::TICKET_WP_CUSTOM_FIELD_ID);
@@ -50,25 +50,17 @@ abstract class AbstractPlatform
             );
 
             if ($phoneNumber) {
-                return intval($phoneNumber);
+                return $phoneNumber;
             }
         }
 
         return $this->getPhoneNumber_($notification);
     }
 
-    private function getPhoneNumber_(AbstractNotification $notification): false|int
+    private function getPhoneNumber_(AbstractNotification $notification): false|string
     {
-        $platformSpecificWpCustomFieldId = null;
+        $platformSpecificWpCustomFieldId = $this->platformSettings->wpCustomFieldId ?? null;
 
-        if (isset($this->platformSettings->wpCustomFieldId)) {
-            $platformSpecificWpCustomFieldId = $this->platformSettings->wpCustomFieldId;
-        } else {
-            $platformSpecificWpCustomFieldId = null;
-        }
-
-        $phoneNumber = $notification->client->getWpPhoneNumberOrWhmcsPhoneNumber($platformSpecificWpCustomFieldId);
-
-        return $phoneNumber;
+        return $notification->client->getWpPhoneNumberOrWhmcsPhoneNumber($platformSpecificWpCustomFieldId);
     }
 }
