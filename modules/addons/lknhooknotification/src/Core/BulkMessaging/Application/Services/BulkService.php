@@ -61,6 +61,43 @@ final class BulkService
         return $result;
     }
 
+    /**
+     * Cancels only the current in-progress run of a campaign.
+     * For recurring campaigns, advances the schedule to the next cycle (status → ACTIVE).
+     * For one-time campaigns, permanently aborts (status → ABORTED).
+     */
+    public function cancelCurrentRun(int $bulkId): Result
+    {
+        try {
+            $bulk = $this->getBulk($bulkId);
+
+            if (!$bulk || $bulk->status !== BulkStatus::IN_PROGRESS) {
+                return new Result(code: 'error', errors: ['message' => lkn_hn_lang('Campaign is not in progress.')]);
+            }
+
+            // Abort all waiting messages in queue
+            $messages = $this->bulkRepository->getInProgressBulkMessages($bulkId);
+            foreach ($messages as $message) {
+                $this->updateBulkMessageStatus($message->id, QueuedNotificationStatus::ABORTED);
+            }
+
+            // Fail the open campaign_run record
+            $this->bulkRepository->failOpenCampaignRuns($bulkId);
+
+            if ($bulk->isRecurring()) {
+                // Recurring: advance schedule → next cycle, status becomes ACTIVE
+                $this->advanceRecurringCampaign($bulk);
+            } else {
+                // One-time: permanently abort
+                $this->bulkRepository->updateBulk($bulkId, status: BulkStatus::ABORTED->value);
+            }
+
+            return new Result(code: 'success');
+        } catch (Throwable $th) {
+            return new Result(code: 'error', errors: ['exception' => $th->getMessage()]);
+        }
+    }
+
     public function updateBulkMessageProgress(
         int $bulkId,
         int $totalWaitingBulkMessages,

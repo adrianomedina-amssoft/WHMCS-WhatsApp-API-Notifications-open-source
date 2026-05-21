@@ -68,6 +68,15 @@ final class BulkController extends BaseController
                     : ($result->errors['message'] ?? lkn_hn_lang('Could not resume campaign.')));
         }
 
+        // Cancel current run (recurring: advances to next cycle; one-time: aborts permanently)
+        if (isset($request['cancel-run']) && !empty($request['bulk-id'])) {
+            $result = $this->bulkService->cancelCurrentRun((int) $request['bulk-id']);
+            $this->view->alert($result->code === 'success' ? 'success' : 'warning',
+                $result->code === 'success'
+                    ? lkn_hn_lang('Run cancelled. Campaign rescheduled for next cycle.')
+                    : ($result->errors['message'] ?? lkn_hn_lang('Could not cancel the current run.')));
+        }
+
         $bulks    = $this->bulkService->getBulks();
         $calendar = $this->bulkService->getCalendar(7); // next 7 days inline
 

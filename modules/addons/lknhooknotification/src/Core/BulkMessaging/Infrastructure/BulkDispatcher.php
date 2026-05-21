@@ -5,6 +5,7 @@ namespace Lkn\HookNotification\Core\BulkMessaging\Infrastructure;
 use Lkn\HookNotification\Core\BulkMessaging\Application\Services\BulkService;
 use Lkn\HookNotification\Core\BulkMessaging\Domain\Bulk;
 use Lkn\HookNotification\Core\BulkMessaging\Domain\BulkNotification;
+use Lkn\HookNotification\Core\BulkMessaging\Domain\BulkStatus;
 use Lkn\HookNotification\Core\NotificationQueue\Application\NotificationQueueService;
 use Lkn\HookNotification\Core\NotificationQueue\Domain\QueuedNotificationStatus;
 use Lkn\HookNotification\Core\NotificationReport\Domain\NotificationReportStatus;
@@ -81,6 +82,12 @@ final class BulkDispatcher extends Singleton
 
     private function processBulk(Bulk $bulk): void
     {
+        // Guard: if status was changed externally (cancel/pause) while this cron cycle runs, stop immediately.
+        $freshBulk = $this->bulkMessageRepositoryService->getBulk($bulk->id);
+        if (!$freshBulk || $freshBulk->status !== BulkStatus::IN_PROGRESS) {
+            return;
+        }
+
         [
             $waitingBulkMessages,
             $totalWaitingBulkMessages,

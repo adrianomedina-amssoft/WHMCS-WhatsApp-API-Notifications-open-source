@@ -178,6 +178,16 @@
                                                         <i class="fas fa-edit"></i>
                                                     </a>
 
+                                                    {* Cancel current run (in_progress recurring only) *}
+                                                    {if $bulk->status->value === 'in_progress' && $bulk->isRecurring()}
+                                                        <a class="btn btn-warning btn-xs"
+                                                           href="?module=lknhooknotification&page=bulk/list&cancel-run=1&bulk-id={$bulk->id}"
+                                                           title="{lkn_hn_lang text='Cancel current run'}"
+                                                           onclick="return confirm('{lkn_hn_lang text='Cancel this run and reschedule the next cycle?'}')">
+                                                            <i class="fas fa-stop-circle"></i>
+                                                        </a>
+                                                    {/if}
+
                                                     {* Pause (active only) *}
                                                     {if $bulk->status->value === 'active'}
                                                         <a class="btn btn-warning btn-xs"
