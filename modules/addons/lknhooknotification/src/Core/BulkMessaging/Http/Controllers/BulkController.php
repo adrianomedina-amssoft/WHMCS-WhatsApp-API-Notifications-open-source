@@ -291,7 +291,7 @@ final class BulkController extends BaseController
 
         // When form fields are submitted (save, preview-schedule), build state from request.
         // Otherwise, build from stored bulk values.
-        $hasFormPost = isset($request['save-bulk']) || isset($request['preview-schedule']);
+        $hasFormPost = isset($request['save-bulk']) || isset($request['preview-schedule']) || isset($request['message-template']);
 
         $newBulkRequest = new NewBulkRequest(
             status:           $bulk->status,
@@ -301,7 +301,7 @@ final class BulkController extends BaseController
             startAt:          $hasFormPost && !empty($request['date-to-send']) ? new DateTime($request['date-to-send']) : $bulk->startAt,
             maxConcurrency:   $hasFormPost ? (int) ($request['max-concurrency'] ?? $bulk->maxConcurrency) : $bulk->maxConcurrency,
             filters:          $hasFormPost ? NewBulkRequest::parseFiltersFromRequest($request) : $bulk->filters,
-            template:         $hasFormPost ? ($request['template'] ?? $bulk->template) : $bulk->template,
+            template:         $hasFormPost ? ($request['template'] ?? $request['message-template'] ?? $bulk->template) : $bulk->template,
             recurrenceType:   $hasFormPost ? ($request['recurrence-type'] ?? 'once') : $bulk->recurrenceType,
             recurrenceConfig: $hasFormPost ? NewBulkRequest::parseRecurrenceConfigFromRequest($request) : $bulk->recurrenceConfig,
             endAt:            $hasFormPost ? (!empty($request['end-at']) ? new DateTime($request['end-at']) : null) : $bulk->endAt,
@@ -312,11 +312,12 @@ final class BulkController extends BaseController
         $campaignRuns          = $this->bulkService->getCampaignRuns($bulk->id);
 
         $editingNotification = new BulkNotification();
+        $isTemplateSelection = isset($request['message-template']) && !isset($request['save-bulk']);
         $editingTemplate     = new NotificationTemplate(
             $newBulkRequest->platform,
             null,
-            $bulk->template ?? '',
-            $bulk->platformPayload,
+            $request['message-template'] ?? $bulk->template ?? '',
+            $isTemplateSelection ? null : $bulk->platformPayload,
         );
 
         $clientGroups = Capsule::table('tblclientgroups')
