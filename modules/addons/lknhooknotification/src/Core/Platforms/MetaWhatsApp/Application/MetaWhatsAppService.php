@@ -30,7 +30,8 @@ final class MetaWhatsAppService
     {
         return $this->metaWhatsAppApiClient->getMessageTemplates(
             [
-                'fields' => 'name,language,components,status&status=APPROVED',
+                'fields' => 'name,language,components,status',
+                'status' => 'APPROVED',
                 'limit' => 9999,
             ]
         );
