@@ -168,13 +168,19 @@ final class BulkDispatcher extends Singleton
 
     /**
      * Starts a new run for a recurring ACTIVE campaign:
-     * 1. Re-evaluates filters → clears old queue → enqueues current clients
-     * 2. Creates a campaign_run record
-     * 3. Marks bulk as IN_PROGRESS
+     * 1. Atomically claims the campaign (active → in_progress) to prevent concurrent cron runs
+     * 2. Re-evaluates filters → clears old queue → enqueues current clients
+     * 3. Creates a campaign_run record and processes the first batch
      */
     private function startRecurringRun(Bulk $bulk): void
     {
         try {
+            // Atomic guard: only the process that wins the UPDATE WHERE status='active' proceeds.
+            // Prevents two concurrent cron runs from both initializing and double-sending the campaign.
+            if ($this->bulkRepository->atomicSetInProgress($bulk->id) === 0) {
+                return;
+            }
+
             // Re-evaluate filters dynamically
             $clientIds = array_column(
                 $this->bulkMessageRepositoryService->getClientsByFilter($bulk->filters),
@@ -199,8 +205,7 @@ final class BulkDispatcher extends Singleton
             // Create run history record
             $this->bulkRepository->insertCampaignRun($bulk->id, (new \DateTime())->format('Y-m-d H:i:s'));
 
-            // Mark as IN_PROGRESS (reset progress to 0 so progress bar works)
-            $this->bulkRepository->updateBulk($bulk->id, status: 'in_progress', progress: 0.0);
+            // status/progress already set by atomicSetInProgress — no redundant updateBulk needed
 
             // Immediately process the first batch this cron cycle
             $freshBulk = $this->bulkMessageRepositoryService->getBulk($bulk->id);

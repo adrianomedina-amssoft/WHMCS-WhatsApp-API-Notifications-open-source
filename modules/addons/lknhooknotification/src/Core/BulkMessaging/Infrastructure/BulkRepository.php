@@ -306,4 +306,18 @@ final class BulkRepository extends BaseRepository
             ->where('id', $bulkId)
             ->delete();
     }
+
+    /**
+     * Atomically transitions a campaign from active → in_progress and resets progress.
+     * MySQL UPDATE WHERE is row-level atomic: only one concurrent process receives rowsAffected=1.
+     * Returns 1 if this process claimed the campaign, 0 if another process already did.
+     */
+    public function atomicSetInProgress(int $bulkId): int
+    {
+        return $this->query
+            ->table('mod_lkn_hook_notification_bulks')
+            ->where('id', $bulkId)
+            ->where('status', BulkStatus::ACTIVE->value)
+            ->update(['status' => BulkStatus::IN_PROGRESS->value, 'progress' => 0.0]);
+    }
 }
