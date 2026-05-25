@@ -155,13 +155,33 @@ final class MetaWhatsAppTemplateRenderer
         ?NotificationTemplate $notificationTemplate,
         AbstractNotification $notification
     ): ?string {
-        if (strtoupper($component['format']) === 'TEXT' && strpos($component['text'], '{{') === false) {
+        if (strtoupper($component['format']) === 'TEXT' && strpos($component['text'] ?? '', '{{') === false) {
             /** @var string */
             return $component['text'];
         }
 
         if (!in_array($component['format'], ['TEXT', 'DOCUMENT', 'IMAGE', 'VIDEO'])) {
             return null;
+        }
+
+        if (in_array($component['format'], ['IMAGE', 'DOCUMENT', 'VIDEO'])) {
+            $existingValue = $notificationTemplate?->platformPayload['header'][0]['value'] ?? '';
+            $currentUrl    = filter_var($existingValue, FILTER_VALIDATE_URL) !== false
+                ? htmlspecialchars($existingValue, ENT_QUOTES)
+                : '';
+            $placeholder   = $component['format'] === 'IMAGE'
+                ? 'https://example.com/image.jpg'
+                : 'https://example.com/file.pdf';
+
+            return "<input
+                type='url'
+                name='header-parameter'
+                required
+                value='{$currentUrl}'
+                placeholder='{$placeholder}'
+                class='form-control'
+                style='max-width:500px;'
+            >";
         }
 
         return $this->renderWithParams(

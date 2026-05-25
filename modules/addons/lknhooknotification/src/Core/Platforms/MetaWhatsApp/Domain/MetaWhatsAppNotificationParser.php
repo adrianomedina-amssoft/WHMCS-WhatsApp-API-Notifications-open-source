@@ -84,11 +84,15 @@ final class MetaWhatsAppNotificationParser extends AbstractNotificationParser
     {
         $componentesPayload = $this->template->platformPayload;
 
-        $headerParamCode   = $componentesPayload['header'][0]['value'];
-        $headerParamParser = $this->notification->parameters->getValueGetterForParameter($headerParamCode);
+        $headerParamCode = $componentesPayload['header'][0]['value'];
+        $headerType      = strtolower($componentesPayload['header'][0]['type']);
 
-        $paramReplacement = $headerParamParser();
-        $headerType       = strtolower($componentesPayload['header'][0]['type']);
+        if (filter_var($headerParamCode, FILTER_VALIDATE_URL) !== false) {
+            $paramReplacement = $headerParamCode;
+        } else {
+            $headerParamParser = $this->notification->parameters->getValueGetterForParameter($headerParamCode);
+            $paramReplacement  = $headerParamParser();
+        }
 
         if (!in_array($headerType, ['text', 'document', 'image'], true)) {
             return new Result(

@@ -212,15 +212,27 @@
 
         lknMetaTplComponents.forEach(function (comp) {
             if (comp.type === 'HEADER') {
-                var sel = document.querySelector('[name="header-parameter"]');
+                var headerFmt = document.querySelector('[name="header-format"]');
+                var fmt = headerFmt ? headerFmt.value : '';
                 var headerHtml = '';
-                if (comp.text && comp.text.indexOf('{{') === -1) {
+
+                if (fmt === 'IMAGE') {
+                    var inp = document.querySelector('[name="header-parameter"]');
+                    var url = inp ? inp.value.trim() : '';
+                    headerHtml = url
+                        ? '<img src="' + url + '" style="max-width:100%;border-radius:4px;" onerror="this.style.display=\'none\'">'
+                        : pending('[IMAGE]');
+                } else if (comp.text && comp.text.indexOf('{{') === -1) {
                     headerHtml = comp.text;
-                } else if (sel) {
-                    headerHtml = sel.selectedIndex > 0
-                        ? highlight(sel.options[sel.selectedIndex].text)
-                        : pending('{{1}}');
+                } else {
+                    var sel = document.querySelector('[name="header-parameter"]');
+                    if (sel) {
+                        headerHtml = sel.selectedIndex > 0
+                            ? highlight(sel.options[sel.selectedIndex].text)
+                            : pending('{{1}}');
+                    }
                 }
+
                 previewHeader.innerHTML = headerHtml;
                 previewHeader.style.display = headerHtml ? 'block' : 'none';
 
