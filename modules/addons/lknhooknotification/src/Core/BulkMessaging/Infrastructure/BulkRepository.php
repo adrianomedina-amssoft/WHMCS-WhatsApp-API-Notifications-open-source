@@ -320,4 +320,36 @@ final class BulkRepository extends BaseRepository
             ->where('status', BulkStatus::ACTIVE->value)
             ->update(['status' => BulkStatus::IN_PROGRESS->value, 'progress' => 0.0]);
     }
+
+    /**
+     * Atomically claims a campaign for processing by setting a lock timestamp.
+     * Returns true if this process claimed the lock, false if another process already did.
+     * Lock expires after 60 seconds to prevent stuck locks from crashed processes.
+     */
+    public function tryLockForProcessing(int $bulkId): bool
+    {
+        $now = (new DateTime())->format('Y-m-d H:i:s');
+        $lockThreshold = (new DateTime())->modify('-60 seconds')->format('Y-m-d H:i:s');
+
+        return $this->query
+            ->table('mod_lkn_hook_notification_bulks')
+            ->where('id', $bulkId)
+            ->where('status', BulkStatus::IN_PROGRESS->value)
+            ->where(function ($q) use ($lockThreshold) {
+                $q->whereNull('processing_locked_at')
+                  ->orWhere('processing_locked_at', '<=', $lockThreshold);
+            })
+            ->update(['processing_locked_at' => $now]) > 0;
+    }
+
+    /**
+     * Releases the processing lock for a campaign.
+     */
+    public function releaseProcessingLock(int $bulkId): void
+    {
+        $this->query
+            ->table('mod_lkn_hook_notification_bulks')
+            ->where('id', $bulkId)
+            ->update(['processing_locked_at' => null]);
+    }
 }

@@ -1,23 +1,144 @@
-# Documentação interna para IA (Claude Code) — não enviar ao repositório
+# =============================================================================
+# .gitignore para lknhooknotification (Addon WHMCS)
+# Repositório público: https://github.com/adrianomedina-amssoft/WHMCS-WhatsApp-API-Notifications-open-source
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Documentação interna do Claude Code
+# -----------------------------------------------------------------------------
 CLAUDE.md
 
-# Arquivos de backup criados localmente durante edição
+# -----------------------------------------------------------------------------
+# Dependências do Composer
+# -----------------------------------------------------------------------------
+vendor/
+composer-cache/
+
+# -----------------------------------------------------------------------------
+# Cópias ao vivo (deploy) — não rastrear
+# -----------------------------------------------------------------------------
+# Core/ e Notifications/ na RAIZ do repo são cópias de produção (deploy)
+# O código tracked está em modules/addons/lknhooknotification/src/
+/Core/
+/Notifications/
+
+# -----------------------------------------------------------------------------
+# Arquivos temporários e cache
+# -----------------------------------------------------------------------------
+# PDFs e imagens gerados em runtime (faturas)
+**/temp/invoices_pdf/
+**/temp/invoices_img/
+**/Core/temp/invoices_pdf/
+**/Core/temp/invoices_img/
+
+# Cache
+*.cache
+/cache/
+
+# Logs
+*.log
+/logs/
+
+# Arquivos temporários do PHP
+*.tmp
+*.temp
+*.pid
+*.sock
+
+# -----------------------------------------------------------------------------
+# Arquivos de backup
+# -----------------------------------------------------------------------------
 *-php-bkp
 *-php-bak
 *.bkp
 *.bak
-
-# Diretórios gerados em runtime (PDFs e imagens de faturas)
-**/Core/temp/invoices_pdf/
-**/Core/temp/invoices_img/
-**/temp/invoices_pdf/
-**/temp/invoices_img/
-
-# Editor / SO
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
+*.backup
+*.orig
 *~
+
+# -----------------------------------------------------------------------------
+# Arquivos de banco de dados
+# -----------------------------------------------------------------------------
+*.sql
+*.sql.gz
+*.dump
+*.sqlite
+*.db
+
+# -----------------------------------------------------------------------------
+# Arquivos de certificados e chaves (sensíveis)
+# -----------------------------------------------------------------------------
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# -----------------------------------------------------------------------------
+# Arquivos de configuração local / sensíveis
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.local.php
+configuration.php
+
+# -----------------------------------------------------------------------------
+# Arquivos de IDE e editores
+# -----------------------------------------------------------------------------
 .idea/
 .vscode/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+.classpath
+*.launch
+*.iml
+
+# -----------------------------------------------------------------------------
+# Arquivos do sistema operacional
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+._*
+
+# -----------------------------------------------------------------------------
+# Arquivos de teste e cobertura
+# -----------------------------------------------------------------------------
+/tests/
+/phpunit.xml
+/phpunit.xml.dist
+/phpstan.neon
+/phpstan.neon.dist
+/.php-cs-fixer.php
+/.php-cs-fixer.cache
+/coverage/
+*.coverage
+
+# -----------------------------------------------------------------------------
+# Arquivos de build e deploy
+# -----------------------------------------------------------------------------
+/build/
+/dist/
+/releases/
+*.phar
+
+# -----------------------------------------------------------------------------
+# Node.js (se houver)
+# -----------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# -----------------------------------------------------------------------------
+# Exceções (arquivos que NÃO devem ser ignorados)
+# -----------------------------------------------------------------------------
+!**/.gitkeep
+!*.example
+!*.sample
+!*.dist

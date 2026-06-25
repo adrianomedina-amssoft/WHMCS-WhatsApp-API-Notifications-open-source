@@ -588,4 +588,20 @@ final class DatabaseUpgrade
             lkn_hn_log('Database 4.6.0 campaign_runs failed', null, $th->__toString());
         }
     }
+
+    /** Adds processing lock column to bulks table (v4.6.1) */
+    public static function v461(): void
+    {
+        try {
+            Capsule::connection()->statement('
+                ALTER TABLE mod_lkn_hook_notification_bulks
+                    ADD COLUMN processing_locked_at DATETIME NULL AFTER end_at
+            ');
+
+            lkn_hn_log('Database 4.6.1 add processing_locked_at success', null, []);
+        } catch (Throwable $th) {
+            // Column may already exist — safe to ignore duplicate column errors
+            lkn_hn_log('Database 4.6.1 add processing_locked_at skipped or failed', null, $th->getMessage());
+        }
+    }
 }

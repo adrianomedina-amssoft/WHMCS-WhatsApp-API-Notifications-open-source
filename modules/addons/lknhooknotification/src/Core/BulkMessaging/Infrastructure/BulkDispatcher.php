@@ -88,6 +88,12 @@ final class BulkDispatcher extends Singleton
             return;
         }
 
+        // Atomic lock: prevent two cron runs from processing the same campaign simultaneously.
+        // Uses a timestamp-based lock that expires after 60 seconds to prevent stuck locks.
+        if (!$this->bulkRepository->tryLockForProcessing($bulk->id)) {
+            return;
+        }
+
         [
             $waitingBulkMessages,
             $totalWaitingBulkMessages,
@@ -160,6 +166,9 @@ final class BulkDispatcher extends Singleton
                 $this->finalizeOnceRun($updatedBulk);
             }
         }
+
+        // Release the processing lock
+        $this->bulkRepository->releaseProcessingLock($bulk->id);
     }
 
     // -------------------------------------------------------------------------
