@@ -108,14 +108,13 @@ lknhooknotification/
 
 ---
 
-## 📄 Licença
+## Apoie o Projeto ☕
 
-Consulte o arquivo [EULA.txt](modules/addons/lknhooknotification/EULA.txt) para termos de uso.
+Este módulo é gratuito e de código aberto. Se ele te ajudou a economizar tempo ou proteger melhor o seu servidor, considere fazer uma doação de qualquer valor para ajudar a manter o projeto vivo, financiar melhorias e novas funcionalidades.
 
----
+Toda contribuição, por menor que seja, faz diferença. Muito obrigado! 🙏
 
-## 🤝 Suporte
-
-- **AMS Soft**: [amssoft.com.br](https://www.amssoft.com.br)
-- **E-mail**: contato@amssoft.com.br
-- **GitHub**: [adrianomedina-amssoft](https://github.com/adrianomedina-amssoft)
+| Método | Link |
+|---|---|
+| Mercado Pago | [Clique aqui para doar via Mercado Pago](https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=95add4219a6b47f286b1405a51a39b7b) |
+| PayPal | [Clique aqui para doar via PayPal](https://www.paypal.com/ncp/payment/UZQBBQ4BQ89UQ) |
